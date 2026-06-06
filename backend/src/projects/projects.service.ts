@@ -46,6 +46,12 @@ export class ProjectsService {
   async getUserProjects(userId: string) {
     return this.prisma.project.findMany({
       where: { members: { some: { userId } } },
+      include: {
+        members: {
+          where: { userId: userId },
+          select: { role: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

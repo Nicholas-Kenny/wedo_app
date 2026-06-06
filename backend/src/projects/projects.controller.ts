@@ -66,8 +66,8 @@ export class ProjectsController {
         body.email,
         body.role,
       );
-    } catch (e) {
-      throw new BadRequestException(e.message);
+    } catch (e: any) {
+      throw new BadRequestException(e?.message ?? 'Unable to invite member');
     }
   }
 

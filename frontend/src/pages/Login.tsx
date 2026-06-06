@@ -1,31 +1,29 @@
 // src/pages/Login.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../api/client';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { apiClient } from "../api/client";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Mencegah halaman refresh saat tombol ditekan
-    setError('');
+    e.preventDefault();
+    setError("");
 
     try {
-      // 1. Tembak API Backend
-      const response = await apiClient.post('/auth/login', { email, password });
+      const response = await apiClient.post("/auth/login", { email, password });
       const { access_token } = response.data;
 
-      // 2. Simpan token ke "brankas" browser
-      localStorage.setItem('access_token', access_token);
-
-      // 3. Arahkan user ke halaman papan Kanban
-      navigate('/dashboard');
+      localStorage.setItem("access_token", access_token);
+      navigate("/dashboard"); // <-- Arahkan ke dashboard setelah login
     } catch (err: any) {
-      // Tangkap pesan error dari backend jika kredensial salah
-      setError(err.response?.data?.message || 'Login gagal. Periksa kembali email dan password Anda.');
+      setError(
+        err.response?.data?.message ||
+          "Login gagal. Periksa kembali email dan password Anda.",
+      );
     }
   };
 
@@ -37,7 +35,6 @@ export default function Login() {
           <p className="text-gray-500 mt-2">Masuk ke ruang kerja Anda</p>
         </div>
 
-        {/* Tampilkan kotak merah jika ada error */}
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm text-center font-medium">
             {error}
@@ -46,7 +43,9 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Email
+            </label>
             <input
               type="email"
               required
@@ -56,9 +55,11 @@ export default function Login() {
               placeholder="contoh@email.com"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Password
+            </label>
             <input
               type="password"
               required
@@ -76,6 +77,16 @@ export default function Login() {
             Masuk
           </button>
         </form>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Belum punya akun?{" "}
+          <Link
+            to="/register"
+            className="text-blue-600 font-semibold hover:underline"
+          >
+            Daftar sekarang
+          </Link>
+        </p>
       </div>
     </div>
   );

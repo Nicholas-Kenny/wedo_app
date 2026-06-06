@@ -14,6 +14,7 @@ interface Project {
   id: string;
   title: string;
   description: string;
+  members: { role: string }[];
 }
 
 interface UpcomingTask {
@@ -33,7 +34,7 @@ export default function Dashboard() {
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [inviteModal, setInviteModal] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
 
@@ -111,7 +112,6 @@ export default function Dashboard() {
   return (
     <div className="bg-gray-50 p-8 flex-1">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-        
         {/* KIRI: DAFTAR PROYEK */}
         <div className="flex-1">
           <header className="flex justify-between items-center mb-8">
@@ -132,32 +132,56 @@ export default function Dashboard() {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => navigate(`/board/${project.id}`)}
-                className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-400 transition-all cursor-pointer group"
-              >
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <FolderKanban className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  {project.title}
-                </h3>
-                <p className="text-gray-500 text-sm line-clamp-2 mb-4">
-                  {project.description || "Tidak ada deskripsi."}
-                </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setInviteModal(project.id);
-                  }}
-                  className="text-xs text-blue-600 font-semibold hover:underline"
+            {projects.map((project) => {
+              // Menentukan role user dari data yang dikirim backend
+              const isOwner =
+                project.members &&
+                project.members.length > 0 &&
+                project.members[0].role === "OWNER";
+
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => navigate(`/board/${project.id}`)}
+                  className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-400 transition-all cursor-pointer group flex flex-col"
                 >
-                  + Undang Anggota
-                </button>
-              </div>
-            ))}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <FolderKanban className="w-6 h-6" />
+                    </div>
+                    {/* Badge Penanda Role */}
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-md border ${
+                        isOwner
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-gray-50 text-gray-600 border-gray-200"
+                      }`}
+                    >
+                      {isOwner ? "👑 Owner" : "👥 Member"}
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    {project.title}
+                  </h3>
+                  <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-1">
+                    {project.description || "Tidak ada deskripsi."}
+                  </p>
+
+                  {isOwner && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInviteModal(project.id);
+                      }}
+                      className="text-xs text-blue-600 font-semibold hover:underline w-fit"
+                    >
+                      + Undang Anggota
+                    </button>
+                  )}
+                </div>
+              );
+            })}
 
             {projects.length === 0 && (
               <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
@@ -283,7 +307,7 @@ export default function Dashboard() {
               <button
                 onClick={() => {
                   setInviteModal(null);
-                  setInviteEmail(""); 
+                  setInviteEmail("");
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -291,11 +315,11 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleInvite(inviteModal); 
-              }} 
+                handleInvite(inviteModal);
+              }}
               className="space-y-4"
             >
               <div>
