@@ -1,5 +1,4 @@
-// src/tasks/tasks.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -18,17 +17,62 @@ export class TasksService {
         projectId,
         stageId,
         title,
-        assignedTo: assignedToUserId, // Bisa null jika belum ada yang di-assign
-        dueDate: dueDate,
+        assignedTo: assignedToUserId,
+        dueDate,
       },
     });
+  }
+
+  async getTaskDetails(taskId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        assignee: { select: { id: true, name: true, email: true } },
+        stage: { select: { id: true, title: true } },
+        comments: {
+          include: {
+            user: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!task) throw new NotFoundException('Tugas tidak ditemukan.');
+    return task;
+  }
+
+  async updateTask(
+    taskId: string,
+    data: {
+      title?: string;
+      description?: string;
+      dueDate?: Date | null;
+      assignedTo?: string | null;
+    },
+  ) {
+    return this.prisma.task.update({
+      where: { id: taskId },
+      data,
+    });
+  }
+
+  async deleteTask(taskId: string) {
+    return this.prisma.task.delete({ where: { id: taskId } });
   }
 
   async moveTask(taskId: string, newStageId: string) {
     return this.prisma.task.update({
       where: { id: taskId },
-      data: {
-        stageId: newStageId,
+      data: { stageId: newStageId },
+    });
+  }
+
+  async addComment(taskId: string, userId: string, content: string) {
+    return this.prisma.comment.create({
+      data: { taskId, userId, content },
+      include: {
+        user: { select: { id: true, name: true } },
       },
     });
   }
@@ -40,19 +84,17 @@ export class TasksService {
 
     return this.prisma.task.findMany({
       where: {
-        assignedTo: userId, // Hanya ambil tugas milik user ini
+        assignedTo: userId,
         dueDate: {
-          gte: today, // Tenggat waktu lebih dari atau sama dengan hari ini
-          lte: nextWeek, // Tenggat waktu kurang dari atau sama dengan 7 hari ke depan
+          gte: today,
+          lte: nextWeek,
         },
       },
       include: {
-        project: { select: { title: true } }, // Bawa serta nama proyeknya
-        stage: { select: { title: true } }, // Bawa serta nama statusnya
+        project: { select: { title: true } },
+        stage: { select: { title: true } },
       },
-      orderBy: {
-        dueDate: 'asc', // Urutkan dari deadline yang paling dekat
-      },
+      orderBy: { dueDate: 'asc' },
     });
   }
 }

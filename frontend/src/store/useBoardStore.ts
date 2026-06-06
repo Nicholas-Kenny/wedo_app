@@ -1,13 +1,13 @@
-// src/store/useBoardStore.ts
 import { create } from 'zustand';
 import { apiClient } from '../api/client';
 
-// 1. Definisikan tipe data sesuai dengan yang dikirim backend
 export interface Task {
   id: string;
   title: string;
+  description: string | null;
   assignedTo: string | null;
-  stageId: string;
+  stageId: string | null;
+  dueDate: string | null;
 }
 
 export interface Stage {
@@ -17,109 +17,155 @@ export interface Stage {
   tasks: Task[];
 }
 
+export interface Member {
+  userId: string;
+  role: string;
+  user: { id: string; name: string; email: string };
+}
+
 export interface ProjectBoard {
   id: string;
   title: string;
   stages: Stage[];
+  members: Member[];
 }
 
 interface BoardState {
   board: ProjectBoard | null;
   isLoading: boolean;
+  selectedTaskId: string | null;
+
   fetchBoard: (projectId: string) => Promise<void>;
   moveTaskOptimistic: (taskId: string, sourceStageId: string, destStageId: string) => void;
   addTask: (projectId: string, stageId: string, title: string, dueDate: string) => Promise<void>;
   addStage: (projectId: string, title: string) => Promise<void>;
+  deleteStage: (projectId: string, stageId: string) => Promise<void>;
+
+  openTask: (taskId: string) => void;
+  closeTask: () => void;
+  updateTaskInStore: (taskId: string, data: Partial<Task>) => void;
+  deleteTaskFromStore: (taskId: string) => void;
 }
 
-// 2. Buat Store Zustand
 export const useBoardStore = create<BoardState>((set) => ({
   board: null,
   isLoading: false,
+  selectedTaskId: null,
 
-  // Fungsi untuk memanggil API GET Board yang baru saja kita buat
   fetchBoard: async (projectId) => {
     set({ isLoading: true });
     try {
       const response = await apiClient.get(`/projects/${projectId}/board`);
       set({ board: response.data, isLoading: false });
     } catch (error) {
-      console.error("Gagal mengambil data board:", error);
+      console.error('Gagal mengambil data board:', error);
       set({ isLoading: false });
     }
   },
 
-  // Fungsi untuk memindahkan kartu di UI secara instan (Optimistic Update)
   moveTaskOptimistic: async (taskId, sourceStageId, destStageId) => {
-    // 1. Ubah UI secara instan (Optimistic Update)
+    // Optimistic update — ubah UI instan
     set((state) => {
       if (!state.board) return state;
+      const newStages = state.board.stages.map((s) => ({ ...s, tasks: [...s.tasks] }));
+      const srcIdx = newStages.findIndex((s) => s.id === sourceStageId);
+      const dstIdx = newStages.findIndex((s) => s.id === destStageId);
+      if (srcIdx === -1 || dstIdx === -1) return state;
 
-      const newStages = [...state.board.stages];
-      const sourceStageIndex = newStages.findIndex(s => s.id === sourceStageId);
-      const destStageIndex = newStages.findIndex(s => s.id === destStageId);
+      const taskIdx = newStages[srcIdx].tasks.findIndex((t) => t.id === taskId);
+      if (taskIdx === -1) return state;
 
-      if (sourceStageIndex === -1 || destStageIndex === -1) return state;
-
-      const taskIndex = newStages[sourceStageIndex].tasks.findIndex(t => t.id === taskId);
-      if (taskIndex === -1) return state;
-
-      const [task] = newStages[sourceStageIndex].tasks.splice(taskIndex, 1);
+      const [task] = newStages[srcIdx].tasks.splice(taskIdx, 1);
       task.stageId = destStageId;
-      newStages[destStageIndex].tasks.push(task);
+      newStages[dstIdx].tasks.push(task);
 
       return { board: { ...state.board, stages: newStages } };
     });
 
-    // 2. Kirim perubahan ke Backend secara background
     try {
       await apiClient.patch(`/tasks/${taskId}/move`, { newStageId: destStageId });
     } catch (error) {
-      console.error("Gagal menyimpan perpindahan tugas ke database:", error);
-      // Catatan Arsitektur: Di sistem skala besar, kita harus melakukan "rollback" UI ke posisi awal jika API gagal.
-      // Untuk MVP ini, kita cukup log error-nya.
+      console.error('Gagal menyimpan perpindahan task:', error);
     }
   },
 
-  // Fungsi untuk membuat tugas baru
-  addTask: async (projectId: string, stageId: string, title: string, dueDate: string) => {
+  addTask: async (projectId, stageId, title, dueDate) => {
     try {
-      // Tembak API untuk menyimpan ke database
-      const response = await apiClient.post('/tasks', { projectId, stageId, title, dueDate });
-      
-      // Update UI secara instan dengan memasukkan data kembalian dari API
+      const response = await apiClient.post('/tasks', {
+        projectId,
+        stageId,
+        title,
+        dueDate: dueDate || undefined,
+      });
+
       set((state) => {
         if (!state.board) return state;
-
-        const newStages = [...state.board.stages];
-        const stageIndex = newStages.findIndex(s => s.id === stageId);
-        
-        if (stageIndex !== -1) {
-          // Masukkan tugas baru ke dalam daftar tugas di kolom tersebut
-          newStages[stageIndex].tasks.push(response.data);
-        }
-
+        const newStages = state.board.stages.map((s) =>
+          s.id === stageId ? { ...s, tasks: [...s.tasks, response.data] } : s
+        );
         return { board: { ...state.board, stages: newStages } };
       });
     } catch (error) {
-      console.error("Gagal membuat tugas baru:", error);
+      console.error('Gagal membuat task:', error);
     }
   },
 
-  // Fungsi untuk menambah kolom baru
-  addStage: async (projectId: string, title: string) => {
+  addStage: async (projectId, title) => {
     try {
       const response = await apiClient.post(`/projects/${projectId}/stages`, { title });
-      
       set((state) => {
         if (!state.board) return state;
-        
-        // Gabungkan kolom baru ke array stages yang sudah ada
-        const newStages = [...state.board.stages, { ...response.data, tasks: [] }];
-        return { board: { ...state.board, stages: newStages } };
+        return {
+          board: {
+            ...state.board,
+            stages: [...state.board.stages, { ...response.data, tasks: [] }],
+          },
+        };
       });
     } catch (error) {
-      console.error("Gagal menambah kolom:", error);
+      console.error('Gagal menambah kolom:', error);
     }
+  },
+
+  deleteStage: async (projectId, stageId) => {
+    try {
+      await apiClient.delete(`/projects/${projectId}/stages/${stageId}`);
+      set((state) => {
+        if (!state.board) return state;
+        return {
+          board: {
+            ...state.board,
+            stages: state.board.stages.filter((s) => s.id !== stageId),
+          },
+        };
+      });
+    } catch (error) {
+      console.error('Gagal menghapus kolom:', error);
+    }
+  },
+
+  openTask: (taskId) => set({ selectedTaskId: taskId }),
+  closeTask: () => set({ selectedTaskId: null }),
+
+  updateTaskInStore: (taskId, data) => {
+    set((state) => {
+      if (!state.board) return state;
+      const newStages = state.board.stages.map((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...data } : t)),
+      }));
+      return { board: { ...state.board, stages: newStages } };
+    });
+  },
+
+  deleteTaskFromStore: (taskId) => {
+    set((state) => {
+      if (!state.board) return state;
+      const newStages = state.board.stages.map((s) => ({
+        ...s,
+        tasks: s.tasks.filter((t) => t.id !== taskId),
+      }));
+      return { board: { ...state.board, stages: newStages } };
+    });
   },
 }));

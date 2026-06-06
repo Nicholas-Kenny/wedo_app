@@ -1,19 +1,19 @@
-// src/projects/projects.controller.ts
 import {
   Body,
   Controller,
   Post,
   Get,
+  Delete,
   UseGuards,
   Request,
   Param,
+  BadRequestException,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { OwnerOnlyGuard } from './guards/owner-only.guard';
 
 @Controller('projects')
-// 1. Tambahkan dekorator ini untuk memproteksi seluruh endpoint di dalam controller ini
 @UseGuards(AuthGuard)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
@@ -23,15 +23,16 @@ export class ProjectsController {
     @Request() req,
     @Body() body: { title: string; description?: string },
   ) {
-    // 2. Ambil ID user dari req.user yang sudah disisipkan oleh AuthGuard tadi (payload.sub)
-    const userId = req.user.sub;
-
-    // 3. Panggil service dengan userId yang asli!
     return this.projectsService.createProject(
-      userId,
+      req.user.sub,
       body.title,
       body.description,
     );
+  }
+
+  @Get()
+  async getUserProjects(@Request() req) {
+    return this.projectsService.getUserProjects(req.user.sub);
   }
 
   @Get(':id/board')
@@ -39,13 +40,6 @@ export class ProjectsController {
     return this.projectsService.getProjectBoard(id);
   }
 
-  @Get()
-  async getUserProjects(@Request() req) {
-    // Ekstrak ID dari token JWT yang sudah dilewati AuthGuard
-    return this.projectsService.getUserProjects(req.user.sub);
-  }
-
-  // Endpoint untuk menambah kolom kustom
   @Post(':id/stages')
   async addStage(
     @Param('id') projectId: string,
@@ -54,12 +48,32 @@ export class ProjectsController {
     return this.projectsService.addCustomStage(projectId, body.title);
   }
 
+  @Delete(':id/stages/:stageId')
+  @UseGuards(OwnerOnlyGuard)
+  async deleteStage(@Param('stageId') stageId: string) {
+    return this.projectsService.deleteStage(stageId);
+  }
+
   @Post(':id/invite')
-  @UseGuards(AuthGuard, OwnerOnlyGuard) // Guard bekerja berurutan
+  @UseGuards(OwnerOnlyGuard)
   async inviteMember(
     @Param('id') projectId: string,
     @Body() body: { email: string; role?: string },
   ) {
-    return this.projectsService.inviteMember(projectId, body.email, body.role);
+    try {
+      return await this.projectsService.inviteMember(
+        projectId,
+        body.email,
+        body.role,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Delete(':id')
+  @UseGuards(OwnerOnlyGuard)
+  async deleteProject(@Param('id') projectId: string) {
+    return this.projectsService.deleteProject(projectId);
   }
 }

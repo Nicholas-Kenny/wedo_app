@@ -22,7 +22,7 @@ export default function Login() {
       localStorage.setItem('access_token', access_token);
 
       // 3. Arahkan user ke halaman papan Kanban
-      navigate('/board');
+      navigate('/dashboard');
     } catch (err: any) {
       // Tangkap pesan error dari backend jika kredensial salah
       setError(err.response?.data?.message || 'Login gagal. Periksa kembali email dan password Anda.');
