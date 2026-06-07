@@ -10,7 +10,7 @@ import { ProjectBuilder } from './project.builder';
 export class ProjectsService {
   constructor(
     private prisma: PrismaService,
-    private projectBuilder: ProjectBuilder, // Inject Builder Pattern
+    private projectBuilder: ProjectBuilder, 
   ) {}
 
   async createProject(

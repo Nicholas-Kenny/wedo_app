@@ -75,9 +75,11 @@ export class ProjectsController {
     return this.projectsService.deleteProject(id);
   }
 
-  @Delete('stages/:stageId')
-  @UseGuards(OwnerOnlyGuard)
-  async deleteStage(@Param('stageId') stageId: string) {
-    return this.projectsService.deleteStage(stageId);
+  @Delete(':projectId/stages/:stageId')
+  async deleteStage(
+    @Param('projectId') projectId: string,
+    @Param('stageId') stageId: string,
+  ) {
+    return this.projectsService.deleteStage(stageId); 
   }
 }

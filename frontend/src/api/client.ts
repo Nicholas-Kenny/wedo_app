@@ -31,17 +31,13 @@ apiClient.interceptors.response.use(
   },
 );
 
-// ============================================================================
-// API WRAPPERS (Fungsi-fungsi pembantu untuk memanggil endpoint)
-// ============================================================================
-
-// --- DASHBOARD ---
+// DASHBOARD
 export const getDashboardSummary = async () => {
   const response = await apiClient.get("/dashboard");
   return response.data;
 };
 
-// --- PROJECTS ---
+// PROJECTS
 export const createProject = async (data: {
   title: string;
   description?: string;
@@ -61,7 +57,7 @@ export const getProjectBoard = async (projectId: string) => {
   return response.data;
 };
 
-// --- INVITATION SYSTEM ---
+// INVITATION SYSTEM
 export const inviteMember = async (projectId: string, email: string) => {
   const response = await apiClient.post(`/projects/${projectId}/invite`, {
     email,
@@ -74,7 +70,7 @@ export const acceptInvitation = async (projectId: string) => {
   return response.data;
 };
 
-// --- TASKS ---
+// TASKS
 export const createTask = async (data: {
   projectId: string;
   stageId: string;

@@ -7,7 +7,4 @@ export class BoardStageFactory {
       { projectId, title: 'Done', position: 3 },
     ];
   }
-
-  // Nanti kamu bisa tambah method lain, misalnya:
-  // static createSoftwareDevStages(projectId: string) { ... }
 }

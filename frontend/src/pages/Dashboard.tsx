@@ -1,4 +1,3 @@
-// src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,16 +15,17 @@ import {
   BellRing,
   CheckCircle,
   Users,
+  Loader2,
+  Clock,
 } from "lucide-react";
+import { Toast, useToast } from "../components/Toast";
 
-// --- Interfaces ---
 interface Project {
   id: string;
   title: string;
   description: string;
   members: { role: string }[];
 }
-
 interface UpcomingTask {
   id: string;
   title: string;
@@ -33,16 +33,26 @@ interface UpcomingTask {
   project: { title: string };
   stage: { title: string };
 }
-
 interface PendingInvitation {
   projectId: string;
   project: { title: string; description: string };
 }
 
+function getUserName(): string {
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) return "";
+    return JSON.parse(atob(token.split(".")[1])).name || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { toast, showToast, closeToast } = useToast();
+  const userName = getUserName();
 
-  // State Data Dashboard
   const [projects, setProjects] = useState<Project[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<UpcomingTask[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<
@@ -50,68 +60,59 @@ export default function Dashboard() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State Modal Create Project
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [customStagesInput, setCustomStagesInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State Modal Invite
   const [inviteModalProjectId, setInviteModalProjectId] = useState<
     string | null
   >(null);
   const [inviteEmail, setInviteEmail] = useState("");
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Memanggil API Facade yang merangkum semua data
       const data = await getDashboardSummary();
       setProjects(data.userProjects || []);
       setUpcomingTasks(data.upcomingTasks || []);
       setPendingInvitations(data.pendingInvitations || []);
-    } catch (error) {
-      console.error("Gagal memuat data dashboard", error);
+    } catch {
+      /* silently fail – interceptor handles 401 */
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-  // --- Handlers ---
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-
     setIsSubmitting(true);
     try {
       const stages = customStagesInput.trim()
         ? customStagesInput
             .split(",")
             .map((s) => s.trim())
-            .filter((s) => s)
+            .filter(Boolean)
         : undefined;
-
       await createProject({
         title: newTitle,
         description: newDescription,
         customStages: stages,
       });
-
-      // Reset form
       setNewTitle("");
       setNewDescription("");
       setCustomStagesInput("");
       setIsCreateModalOpen(false);
-
-      // Refresh data
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Gagal membuat proyek baru", error);
+      fetchData();
+      showToast("Proyek berhasil dibuat!", "success");
+    } catch {
+      showToast("Gagal membuat proyek. Coba lagi.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -120,93 +121,109 @@ export default function Dashboard() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteModalProjectId || !inviteEmail) return;
-
     try {
       await inviteMember(inviteModalProjectId, inviteEmail);
-      alert("Undangan berhasil dikirim!");
       setInviteModalProjectId(null);
       setInviteEmail("");
+      showToast("Undangan berhasil dikirim!", "success");
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Gagal mengundang user.";
-      alert(msg);
+      showToast(
+        err.response?.data?.message || "Gagal mengundang user.",
+        "error",
+      );
     }
   };
 
   const handleAcceptInvite = async (projectId: string) => {
     try {
       await acceptInvitation(projectId);
-      fetchDashboardData(); // Refresh data agar proyek pindah ke daftar aktif
-    } catch (error) {
-      console.error("Gagal menerima undangan", error);
-      alert("Gagal menerima undangan.");
+      fetchData();
+      showToast("Berhasil bergabung dengan proyek!", "success");
+    } catch {
+      showToast("Gagal menerima undangan.", "error");
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("id-ID", {
       weekday: "short",
       day: "numeric",
       month: "short",
     });
+
+  const getDueSeverity = (dueDate: string) => {
+    const days = Math.ceil(
+      (new Date(dueDate).getTime() - Date.now()) / 86400000,
+    );
+    if (days < 0) return "overdue";
+    if (days <= 1) return "urgent";
+    if (days <= 3) return "soon";
+    return "normal";
   };
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-500">
-        Memuat Dashboard...
+      <div className="flex-1 flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="text-sm font-medium">Memuat dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 p-8 flex-1 overflow-y-auto">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-        {/* KIRI: KONTEN UTAMA */}
-        <div className="flex-1 flex flex-col gap-8">
+    <div className="bg-slate-50 flex-1 overflow-y-auto">
+      <div className="max-w-7xl mx-auto p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
+        {/* ── Main Column ── */}
+        <div className="flex-1 flex flex-col gap-6 min-w-0">
           {/* Header */}
-          <header className="flex justify-between items-center bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                Dashboard Anda
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                {userName
+                  ? `Welcome, ${userName.split(" ")[0]} . . `
+                  : "Dashboard"}
               </h1>
-              <p className="text-gray-500 mt-1 text-sm">
-                Kelola proyek dan pantau produktivitas tim.
+              <p className="text-slate-500 text-sm mt-1">
+                Simplifying Your Workflow, Amplifying Your Results.
               </p>
             </div>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-95"
+              className="btn-primary flex items-center gap-2 shrink-0"
             >
-              <Plus className="w-5 h-5" /> Proyek Baru
+              <Plus className="w-4 h-4" /> New Project
             </button>
-          </header>
+          </div>
 
-          {/* Banner Undangan (Muncul jika ada undangan pending) */}
+          {/* Pending Invitations Banner */}
           {pendingInvitations.length > 0 && (
-            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-amber-800 mb-4 flex items-center gap-2">
-                <BellRing className="w-5 h-5" /> Undangan Proyek (
-                {pendingInvitations.length})
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+              <h2 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
+                <BellRing className="w-4 h-4" />
+                Undangan Masuk ({pendingInvitations.length})
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {pendingInvitations.map((inv) => (
                   <div
                     key={inv.projectId}
-                    className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col justify-between"
+                    className="bg-white rounded-xl border border-amber-100 p-4 flex flex-col gap-3"
                   >
                     <div>
-                      <h3 className="font-bold text-gray-800">
+                      <p className="font-semibold text-slate-800 text-sm">
                         {inv.project.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
                         {inv.project.description || "Tanpa deskripsi"}
                       </p>
                     </div>
                     <button
                       onClick={() => handleAcceptInvite(inv.projectId)}
-                      className="mt-4 bg-amber-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-600 flex items-center justify-center gap-2 transition-colors w-full text-sm"
+                      className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600
+                                 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors w-full"
                     >
-                      <CheckCircle className="w-4 h-4" /> Terima Undangan
+                      <CheckCircle className="w-3.5 h-3.5" /> Terima Undangan
                     </button>
                   </div>
                 ))}
@@ -214,41 +231,51 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Daftar Proyek Aktif */}
+          {/* Projects */}
           <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FolderKanban className="w-6 h-6 text-blue-600" /> Proyek Aktif
-            </h2>
+            <div className="flex items-center gap-2 mb-4">
+              <FolderKanban className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-slate-800">
+                Active Projects
+              </h2>
+              <span className="badge bg-slate-100 text-slate-600">
+                {projects.length}
+              </span>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {projects.map((project) => {
                 const isOwner = project.members?.[0]?.role === "OWNER";
-
                 return (
                   <div
                     key={project.id}
                     onClick={() => navigate(`/board/${project.id}`)}
-                    className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer flex flex-col h-full"
+                    className="card p-5 cursor-pointer hover:shadow-md hover:-translate-y-0.5
+                               transition-all duration-150 flex flex-col h-full group"
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">
-                        <FolderKanban className="w-6 h-6" />
+                      <div
+                        className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl
+                                      flex items-center justify-center border border-blue-100
+                                      group-hover:scale-110 transition-transform"
+                      >
+                        <FolderKanban className="w-5 h-5" />
                       </div>
                       <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                        className={`badge ${
                           isOwner
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                            : "bg-gray-100 text-gray-700 border-gray-200"
+                            ? "bg-violet-50 text-violet-700 border border-violet-200"
+                            : "bg-slate-100 text-slate-600 border border-slate-200"
                         }`}
                       >
-                        {isOwner ? "👑 Owner" : "👥 Member"}
+                        {isOwner ? "Owner" : "Member"}
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
+                    <h3 className="font-bold text-slate-900 mb-1.5 text-sm leading-tight">
                       {project.title}
                     </h3>
-                    <p className="text-gray-500 text-sm line-clamp-3 flex-1 mb-4">
+                    <p className="text-slate-500 text-xs line-clamp-2 flex-1 mb-4">
                       {project.description || "Tidak ada deskripsi."}
                     </p>
 
@@ -258,9 +285,11 @@ export default function Dashboard() {
                           e.stopPropagation();
                           setInviteModalProjectId(project.id);
                         }}
-                        className="text-sm text-blue-600 font-semibold hover:text-blue-800 flex items-center gap-1 w-fit bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600
+                                   hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5
+                                   rounded-lg transition-colors w-fit"
                       >
-                        <Users className="w-4 h-4" /> Undang
+                        <Users className="w-3.5 h-3.5" /> Invite Members
                       </button>
                     )}
                   </div>
@@ -268,90 +297,112 @@ export default function Dashboard() {
               })}
 
               {projects.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center py-16 text-gray-500 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-                  <FolderKanban className="w-12 h-12 text-gray-300 mb-3" />
-                  <p className="font-medium text-lg text-gray-600">
-                    Belum ada proyek aktif.
+                <div
+                  className="col-span-full card py-16 flex flex-col items-center
+                                text-slate-400 border-dashed"
+                >
+                  <FolderKanban className="w-12 h-12 text-slate-200 mb-3" />
+                  <p className="font-semibold text-slate-500">
+                    Belum ada proyek.
                   </p>
-                  <p className="text-sm text-gray-400">
-                    Buat proyek baru atau tunggu undangan dari rekan Anda.
+                  <p className="text-sm mt-1">
+                    Buat proyek pertama Anda atau tunggu undangan.
                   </p>
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn-primary mt-5 flex items-center gap-2 text-sm"
+                  >
+                    <Plus className="w-4 h-4" /> Buat Proyek
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* KANAN: SIDEBAR DEADLINE (FACADE PATTERN) */}
-        <div className="w-full lg:w-[350px]">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sticky top-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-              <CalendarClock className="w-6 h-6 text-rose-500" />
-              Prioritas 7 Hari ke Depan
+        {/* ── Sidebar ── */}
+        <aside className="w-full lg:w-80 shrink-0">
+          <div className="card p-5 sticky top-6">
+            <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-rose-500" />
+              Deadline in 7 days
             </h2>
 
-            <div className="space-y-4">
-              {upcomingTasks.length > 0 ? (
-                upcomingTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="p-4 rounded-xl border border-rose-100 bg-rose-50/50 hover:bg-rose-50 transition-colors group"
-                  >
-                    <h4 className="font-bold text-gray-800 text-sm mb-2 group-hover:text-rose-700 transition-colors">
-                      {task.title}
-                    </h4>
-                    <div className="flex justify-between items-end">
-                      <div className="text-xs text-gray-500">
-                        <p className="font-medium text-gray-700 truncate max-w-[120px]">
-                          {task.project.title}
-                        </p>
-                        <p className="text-gray-400">{task.stage.title}</p>
+            {upcomingTasks.length === 0 ? (
+              <div className="py-10 text-center bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-sm font-semibold text-slate-600">
+                  All Clear!{" "}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  There is no urgent deadline.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {upcomingTasks.map((task) => {
+                  const sev = getDueSeverity(task.dueDate);
+                  const colors: Record<string, string> = {
+                    overdue: "bg-red-50 border-red-200 text-red-700",
+                    urgent: "bg-orange-50 border-orange-200 text-orange-700",
+                    soon: "bg-amber-50 border-amber-200 text-amber-700",
+                    normal: "bg-slate-50 border-slate-200 text-slate-600",
+                  };
+                  return (
+                    <div
+                      key={task.id}
+                      className={`p-3.5 rounded-xl border text-xs ${colors[sev]}`}
+                    >
+                      <p className="font-semibold text-slate-800 text-sm mb-1 line-clamp-1">
+                        {task.title}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 truncate max-w-[120px]">
+                          {task.project.title} · {task.stage.title}
+                        </span>
+                        <span
+                          className={`badge ml-2 shrink-0 flex items-center gap-1 ${colors[sev]}`}
+                        >
+                          {sev === "overdue" ? (
+                            <AlertCircle className="w-3 h-3" />
+                          ) : (
+                            <Clock className="w-3 h-3" />
+                          )}
+                          {formatDate(task.dueDate)}
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-rose-600 bg-white px-2.5 py-1 rounded-md border border-rose-100 flex items-center gap-1.5 shadow-sm">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        {formatDate(task.dueDate)}
-                      </span>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-10 bg-gray-50 rounded-xl border border-gray-100">
-                  <div className="text-4xl mb-2">🎉</div>
-                  <p className="text-sm text-gray-500 font-medium">
-                    Semua tugas aman!
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Tidak ada deadline mendesak.
-                  </p>
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        </aside>
       </div>
 
-      {/* =========================================
-          MODAL PROYEK BARU (BUILDER PATTERN UI)
-      ========================================= */}
+      {/* ── Modal: Proyek Baru ── */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-7 rounded-3xl w-full max-w-lg shadow-2xl">
+        <div
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center
+                        justify-center z-50 p-4"
+        >
+          <div className="card w-full max-w-lg p-7 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Buat Proyek Baru
+              <h2 className="text-xl font-bold text-slate-900">
+                Create New Project
               </h2>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200
+                           p-2 rounded-xl transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <form onSubmit={handleCreateProject} className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                  Nama Proyek <span className="text-red-500">*</span>
+                <label className="field-label">
+                  Project Name{" "}
+                  <span className="text-red-500 normal-case">*</span>
                 </label>
                 <input
                   required
@@ -359,54 +410,50 @@ export default function Dashboard() {
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  placeholder="Contoh: Aplikasi WeDo"
+                  className="input"
+                  placeholder="Aplikasi WeDo"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                  Deskripsi
-                </label>
+                <label className="field-label">Description</label>
                 <textarea
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-24 transition-all"
-                  placeholder="Jelaskan tujuan proyek ini..."
+                  className="input resize-none h-24"
+                  placeholder="Tujuan proyek ini..."
                 />
               </div>
-
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <label className="block text-sm font-bold text-blue-900 mb-1.5">
-                  Tahapan Kanban Kustom (Opsional)
+                <label className="block text-xs font-bold text-blue-800 mb-1.5">
+                  Kanban Column Customization
                 </label>
-                <p className="text-xs text-blue-700 mb-3">
-                  Pisahkan dengan koma. Jika kosong, akan menggunakan default
-                  (To Do, In Progress, Done).
+                <p className="text-xs text-blue-600 mb-3">
+                  Separate with comma. Default: To Do, In Progress, Done.
                 </p>
                 <input
                   type="text"
                   value={customStagesInput}
                   onChange={(e) => setCustomStagesInput(e.target.value)}
-                  className="w-full border border-blue-200 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm placeholder:text-gray-400"
-                  placeholder="Contoh: Backlog, Review, Testing, Selesai"
+                  className="w-full border border-blue-200 rounded-xl px-4 py-2.5 text-sm
+                             bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Backlog, Review, Testing, Selesai"
                 />
               </div>
-
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors"
+                  className="btn-ghost"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md"
+                  className="btn-primary flex items-center gap-2"
                 >
-                  {isSubmitting ? "Menyimpan..." : "Buat Proyek"}
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSubmitting ? "Saving..." : "Create Project"}
                 </button>
               </div>
             </form>
@@ -414,14 +461,15 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* =========================================
-          MODAL UNDANG ANGGOTA
-      ========================================= */}
+      {/* ── Modal: Undang Anggota ── */}
       {inviteModalProjectId && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-7 rounded-3xl w-full max-w-md shadow-2xl">
+        <div
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center
+                        justify-center z-50 p-4"
+        >
+          <div className="card w-full max-w-md p-7 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-slate-900">
                 Undang Anggota
               </h2>
               <button
@@ -429,54 +477,54 @@ export default function Dashboard() {
                   setInviteModalProjectId(null);
                   setInviteEmail("");
                 }}
-                className="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+                className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200
+                           p-2 rounded-xl transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <form onSubmit={handleInvite} className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                  Email Pengguna
-                </label>
+                <label className="field-label">Email Pengguna</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Users className="h-5 w-5 text-gray-400" />
-                  </div>
+                  <Users className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                   <input
                     required
                     autoFocus
                     type="email"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl pl-10 p-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    className="input pl-10"
                     placeholder="nama@email.com"
                   />
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setInviteModalProjectId(null);
                     setInviteEmail("");
                   }}
-                  className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors"
+                  className="btn-ghost"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md"
+                  className="btn-primary flex items-center gap-2"
                 >
-                  Kirim Undangan
+                  <Users className="w-4 h-4" /> Kirim Undangan
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={closeToast} />
       )}
     </div>
   );

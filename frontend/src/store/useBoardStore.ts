@@ -56,7 +56,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }
   },
 
-  // Optimistic UI Update untuk Drag and Drop agar terasa instan
   moveTaskOptimistic: async (
     taskId: string,
     sourceStageId: string,

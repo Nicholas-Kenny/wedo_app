@@ -36,7 +36,7 @@ export class TaskMutationGuard implements CanActivate {
     // Implementasi Req 4 menggunakan Strategy
     if (!authContext.checkAccess(userId, task, member)) {
       throw new ForbiddenException(
-        'Anda tidak memiliki akses untuk mengubah atau menghapus tugas ini. Hanya pembuat tugas atau Project Owner yang diizinkan.',
+        'You do not have access to modify or delete this task. Only the task creator or Project Owner is permitted.',
       );
     }
 

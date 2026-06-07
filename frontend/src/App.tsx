@@ -1,11 +1,17 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import Login from "./pages/Login";
-import Register from "./pages/Register"; // <-- Pastikan ini di-import
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Board from "./pages/Board";
 import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute"; // <-- Import sang Satpam
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function ProtectedLayout() {
   return (
@@ -24,7 +30,7 @@ function App() {
       <Routes>
         {/* Rute Publik */}
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} /> {/* <-- Rute baru untuk Register */}
+        <Route path="/register" element={<Register />} />
 
         {/* Rute Terproteksi (Wajib Login & Ada Navbar) */}
         <Route element={<ProtectedRoute />}>
