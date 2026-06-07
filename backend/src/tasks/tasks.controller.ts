@@ -20,6 +20,7 @@ export class TasksController {
 
   @Post()
   async createTask(
+    @Request() req, // Tambahan: Ambil request object untuk mendapatkan user dari JWT
     @Body()
     body: {
       projectId: string;
@@ -33,6 +34,7 @@ export class TasksController {
       body.projectId,
       body.stageId,
       body.title,
+      req.user.sub, // Tambahan: Pass req.user.sub sebagai creatorId
       body.assignedTo,
       body.dueDate ? new Date(body.dueDate) : undefined,
     );

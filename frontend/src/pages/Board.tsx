@@ -1,217 +1,261 @@
 // src/pages/Board.tsx
 import { useEffect, useState } from "react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  type DropResult,
-} from "@hello-pangea/dnd";
+import { useParams, useNavigate } from "react-router-dom";
 import { useBoardStore } from "../store/useBoardStore";
-import { GripVertical, Plus } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Plus, ArrowLeft, Trash2 } from "lucide-react";
+import TaskDetailModal from "../components/TaskDetailModal";
+import { apiClient } from "../api/client";
+
+const getUserIdFromToken = () => {
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) return "";
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(window.atob(base64)).sub;
+  } catch (e) {
+    console.error("Gagal parse token:", e);
+    return "";
+  }
+};
 
 export default function Board() {
-  const { projectId } = useParams();
+  // PERBAIKAN: Gunakan 'projectId' agar sesuai dengan App.tsx
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const { board, isLoading, fetchBoard, moveTaskOptimistic } = useBoardStore();
 
-  // Panggil fungsi addTask yang baru kita buat
-  const {
-    board,
-    isLoading,
-    fetchBoard,
-    moveTaskOptimistic,
-    addTask,
-    addStage,
-  } = useBoardStore();
-
-  // State untuk melacak kolom mana yang sedang membuka form input
-  const [addingToStage, setAddingToStage] = useState<string | null>(null);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isAddingStage, setIsAddingStage] = useState(false);
   const [newStageTitle, setNewStageTitle] = useState("");
 
-  const [newDate, setNewDate] = useState("");
+  const currentUserId = getUserIdFromToken();
 
   useEffect(() => {
-    if (projectId) {
-      fetchBoard(projectId);
-    }
-  }, [fetchBoard, projectId]);
+    // PERBAIKAN: Panggil fetchBoard dengan projectId
+    if (projectId) fetchBoard(projectId);
+  }, [projectId, fetchBoard]);
 
-  const onDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-500">
+        Memuat Board...
+      </div>
+    );
+  }
 
-    // Jika di-drop di luar area kolom, batalkan
-    if (!destination) return;
+  if (!board) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <p className="text-xl font-bold text-gray-800">Gagal Memuat Board</p>
+        <p className="text-gray-500">
+          Proyek tidak ditemukan atau terjadi kesalahan server.
+        </p>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Kembali ke Dashboard
+        </button>
+      </div>
+    );
+  }
 
-    // Jika di-drop di tempat yang sama persis, batalkan
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    )
+  const currentUserMember = board.members?.find(
+    (m) => m.user.id === currentUserId,
+  );
+  const isOwner = currentUserMember?.role === "OWNER";
+  const handleDragStart = (
+    e: React.DragEvent,
+    taskId: string,
+    sourceStageId: string,
+    creatorId: string,
+  ) => {
+    if (!isOwner && currentUserId !== creatorId) {
+      e.preventDefault();
+      alert(
+        "Hanya pembuat tugas atau Project Owner yang dapat memindahkan tugas ini.",
+      );
       return;
-
-    // Eksekusi fungsi Zustand untuk memindah kartu
-    moveTaskOptimistic(
-      draggableId,
-      source.droppableId,
-      destination.droppableId,
-    );
+    }
+    e.dataTransfer.setData("taskId", taskId);
+    e.dataTransfer.setData("sourceStageId", sourceStageId);
   };
 
-  const handleAddTask = async (stageId: string) => {
-    if (!newTaskTitle.trim() || !projectId) return;
-
-    // Panggil fungsi addTask dari store
-    await addTask(projectId, stageId, newTaskTitle, newDate);
-
-    // Tutup form dan bersihkan input setelah sukses
-    setAddingToStage(null);
-    setNewTaskTitle("");
-    setNewDate(""); // Reset juga tanggalnya
+  const handleDrop = (e: React.DragEvent, destStageId: string) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("taskId");
+    const sourceStageId = e.dataTransfer.getData("sourceStageId");
+    if (taskId && sourceStageId) {
+      moveTaskOptimistic(taskId, sourceStageId, destStageId);
+    }
   };
 
-  if (isLoading)
-    return (
-      <div className="p-10 text-center text-gray-500 font-medium">
-        Memuat ruang kerja...
-      </div>
-    );
-  if (!board)
-    return (
-      <div className="p-10 text-center text-red-500">
-        Gagal memuat papan proyek.
-      </div>
-    );
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleAddStage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // PERBAIKAN: Gunakan projectId
+    if (!newStageTitle.trim() || !projectId) return;
+    try {
+      await apiClient.post(`/projects/${projectId}/stages`, {
+        title: newStageTitle,
+      });
+      setNewStageTitle("");
+      setIsAddingStage(false);
+      fetchBoard(projectId);
+    } catch (error) {
+      console.error("Gagal menambah kolom", error);
+    }
+  };
+
+  const handleDeleteStage = async (stageId: string) => {
+    if (!confirm("Yakin ingin menghapus kolom ini beserta semua isinya?"))
+      return;
+    try {
+      await apiClient.delete(`/projects/stages/${stageId}`);
+      // PERBAIKAN: Gunakan projectId
+      if (projectId) fetchBoard(projectId);
+    } catch (error) {
+      console.error("Gagal menghapus kolom", error);
+    }
+  };
 
   return (
-    <div className="bg-gray-100 p-8 flex flex-col flex-1">
-      <header className="mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-900">{board.title}</h1>
-        <p className="text-gray-500 mt-1">Ruang Kerja Kanban</p>
+    <div className="flex-1 flex flex-col h-screen bg-gray-50 overflow-hidden">
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{board.title}</h1>
+            <p className="text-sm text-gray-500">
+              {isOwner ? "Role: Project Owner" : "Role: Member"}
+            </p>
+          </div>
+        </div>
       </header>
 
-      {/* Konteks Utama Drag & Drop */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-6 items-start overflow-x-auto pb-4 flex-1">
-          {board.stages.map((stage) => (
-            /* Area yang bisa menerima jatuhan kartu (Kolom) */
-            <Droppable key={stage.id} droppableId={stage.id}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`bg-gray-200/70 p-4 rounded-xl w-80 min-h-[150px] flex flex-col transition-colors ${
-                    snapshot.isDraggingOver
-                      ? "bg-blue-50/80 ring-2 ring-blue-300"
-                      : ""
-                  }`}
+      <div className="flex-1 overflow-x-auto p-6 flex gap-6 items-start">
+        {board.stages.map((stage) => (
+          <div
+            key={stage.id}
+            className="w-[320px] shrink-0 bg-gray-100/80 rounded-2xl p-4 flex flex-col max-h-full border border-gray-200/60"
+            onDrop={(e) => handleDrop(e, stage.id)}
+            onDragOver={handleDragOver}
+          >
+            <div className="flex justify-between items-center mb-4 px-1">
+              <h3 className="font-bold text-gray-800">
+                {stage.title}{" "}
+                <span className="text-gray-400 font-normal text-sm ml-1">
+                  ({stage.tasks.length})
+                </span>
+              </h3>
+              {isOwner && (
+                <button
+                  onClick={() => handleDeleteStage(stage.id)}
+                  className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
                 >
-                  <h3 className="font-bold text-gray-700 mb-4 px-1 flex justify-between items-center">
-                    {stage.title}
-                    <span className="bg-gray-300 text-gray-700 text-xs py-1 px-2 rounded-full">
-                      {stage.tasks.length}
-                    </span>
-                  </h3>
-
-                  <div className="flex flex-col gap-3 flex-1">
-                    {stage.tasks.map((task, index) => (
-                      /* Kartu tugas yang bisa ditarik */
-                      <Draggable
-                        key={task.id}
-                        draggableId={task.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`bg-white p-4 rounded-lg shadow-sm border border-gray-100 group flex items-start gap-2 transition-all ${
-                              snapshot.isDragging
-                                ? "shadow-xl ring-2 ring-blue-500 scale-105 rotate-2"
-                                : "hover:shadow-md hover:border-gray-300"
-                            }`}
-                          >
-                            <GripVertical className="w-5 h-5 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab mt-0.5 shrink-0" />
-                            <p className="text-sm font-medium text-gray-800 leading-snug">
-                              {task.title}
-                            </p>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    {/* --- MULAI BLOK ADD TASK --- */}
-                    {addingToStage === stage.id ? (
-                      <div className="mt-3 bg-white p-3 rounded-lg shadow-sm border border-blue-200">
-                        {/* Input Tanggal ditambahkan di sini */}
-                        <input
-                          type="date"
-                          onChange={(e) => setNewDate(e.target.value)}
-                          className="w-full text-xs p-2 rounded bg-gray-50 border border-gray-200 mb-2 text-gray-500"
-                        />
-
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAddTask(stage.id)}
-                            className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700 transition-colors"
-                          >
-                            Simpan
-                          </button>
-                          <button
-                            onClick={() => setAddingToStage(null)}
-                            className="text-gray-500 px-3 py-1.5 text-xs font-medium hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                          >
-                            Batal
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setAddingToStage(stage.id)}
-                        className="mt-3 flex items-center gap-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 w-full text-sm font-medium p-2 rounded-lg transition-colors"
-                      >
-                        <Plus className="w-4 h-4" /> Tambah Tugas Baru
-                      </button>
-                    )}
-                    {/* --- AKHIR BLOK ADD TASK --- */}
-                  </div>
-                </div>
+                  <Trash2 className="w-4 h-4" />
+                </button>
               )}
-            </Droppable>
-          ))}
+            </div>
 
-          {/* --- TOMBOL TAMBAH KOLOM BARU --- */}
-          <div className="w-80 shrink-0">
+            <div className="flex-1 overflow-y-auto space-y-3 min-h-[100px] pb-2">
+              {stage.tasks.map((task) => (
+                <div
+                  key={task.id}
+                  draggable
+                  onDragStart={(e) =>
+                    handleDragStart(e, task.id, stage.id, task.creatorId)
+                  }
+                  onClick={() => setSelectedTaskId(task.id)}
+                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing group"
+                >
+                  <h4 className="font-semibold text-gray-800 text-sm mb-2">
+                    {task.title}
+                  </h4>
+                  {task.dueDate && (
+                    <div className="text-xs font-medium text-gray-500 bg-gray-50 w-fit px-2 py-1 rounded">
+                      Deadline:{" "}
+                      {new Date(task.dueDate).toLocaleDateString("id-ID")}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setSelectedTaskId(`NEW-${stage.id}`)}
+              className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-200/50 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Tambah Task
+            </button>
+          </div>
+        ))}
+
+        {isOwner && (
+          <div className="w-[320px] shrink-0">
             {isAddingStage ? (
-              <div className="bg-gray-200/50 p-4 rounded-xl">
+              <form
+                onSubmit={handleAddStage}
+                className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm"
+              >
                 <input
                   autoFocus
-                  placeholder="Nama kolom..."
-                  className="w-full p-2 rounded-lg border border-gray-300 mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                  type="text"
                   value={newStageTitle}
                   onChange={(e) => setNewStageTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (projectId) addStage(projectId, newStageTitle); // Panggil fungsi store
-                      setIsAddingStage(false);
-                      setNewStageTitle("");
-                    }
-                  }}
+                  placeholder="Nama kolom..."
+                  className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-sm outline-none focus:border-blue-500"
                 />
-              </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingStage(false)}
+                    className="flex-1 bg-gray-100 text-gray-600 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-200"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
             ) : (
               <button
                 onClick={() => setIsAddingStage(true)}
-                className="bg-gray-200/50 hover:bg-gray-300/50 text-gray-600 w-full p-4 rounded-xl flex items-center gap-2 font-bold transition-all"
+                className="flex items-center gap-2 w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 font-medium hover:text-gray-800 hover:border-gray-400 hover:bg-gray-50 transition-all"
               >
                 <Plus className="w-5 h-5" /> Tambah Kolom
               </button>
             )}
           </div>
-        </div>
-      </DragDropContext>
+        )}
+      </div>
+
+      {selectedTaskId && (
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          projectId={projectId!}
+          isOwner={isOwner}
+          currentUserId={currentUserId}
+          members={board.members} // <--- TAMBAHKAN BARIS INI
+          onClose={() => {
+            setSelectedTaskId(null);
+            fetchBoard(projectId!);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import {
   Body,
   Controller,
-  Post,
-  Get,
   Delete,
-  UseGuards,
-  Request,
+  Get,
   Param,
-  BadRequestException,
+  Post,
+  Patch,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -21,12 +21,14 @@ export class ProjectsController {
   @Post()
   async createProject(
     @Request() req,
-    @Body() body: { title: string; description?: string },
+    @Body()
+    body: { title: string; description?: string; customStages?: string[] },
   ) {
     return this.projectsService.createProject(
       req.user.sub,
       body.title,
       body.description,
+      body.customStages,
     );
   }
 
@@ -35,45 +37,47 @@ export class ProjectsController {
     return this.projectsService.getUserProjects(req.user.sub);
   }
 
-  @Get(':id/board')
+  @Get(':id')
   async getProjectBoard(@Param('id') id: string) {
     return this.projectsService.getProjectBoard(id);
   }
 
+  // --- INVITATION ENDPOINTS ---
+
+  @Post(':id/invite')
+  @UseGuards(OwnerOnlyGuard) // Hanya owner yang bisa invite
+  async inviteMember(
+    @Param('id') projectId: string,
+    @Body() body: { email: string },
+  ) {
+    return this.projectsService.inviteMember(projectId, body.email);
+  }
+
+  @Patch(':id/accept')
+  async acceptInvitation(@Param('id') projectId: string, @Request() req) {
+    return this.projectsService.acceptInvitation(projectId, req.user.sub);
+  }
+
+  // --- STAGE & DELETE ENDPOINTS ---
+
   @Post(':id/stages')
-  async addStage(
+  @UseGuards(OwnerOnlyGuard)
+  async addCustomStage(
     @Param('id') projectId: string,
     @Body() body: { title: string },
   ) {
     return this.projectsService.addCustomStage(projectId, body.title);
   }
 
-  @Delete(':id/stages/:stageId')
+  @Delete(':id')
+  @UseGuards(OwnerOnlyGuard)
+  async deleteProject(@Param('id') id: string) {
+    return this.projectsService.deleteProject(id);
+  }
+
+  @Delete('stages/:stageId')
   @UseGuards(OwnerOnlyGuard)
   async deleteStage(@Param('stageId') stageId: string) {
     return this.projectsService.deleteStage(stageId);
-  }
-
-  @Post(':id/invite')
-  @UseGuards(OwnerOnlyGuard)
-  async inviteMember(
-    @Param('id') projectId: string,
-    @Body() body: { email: string; role?: string },
-  ) {
-    try {
-      return await this.projectsService.inviteMember(
-        projectId,
-        body.email,
-        body.role,
-      );
-    } catch (e: any) {
-      throw new BadRequestException(e?.message ?? 'Unable to invite member');
-    }
-  }
-
-  @Delete(':id')
-  @UseGuards(OwnerOnlyGuard)
-  async deleteProject(@Param('id') projectId: string) {
-    return this.projectsService.deleteProject(projectId);
   }
 }

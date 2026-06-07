@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TaskAuthorizationContext } from './strategies/task-access.strategy';
 
 @Injectable()
 export class TaskMutationGuard implements CanActivate {
@@ -27,13 +28,16 @@ export class TaskMutationGuard implements CanActivate {
       },
     });
 
-    if (!task) {
-      throw new NotFoundException('Tugas tidak ditemukan.');
-    }
+    if (!task) throw new NotFoundException('Tugas tidak ditemukan.');
 
-    // Cukup jadi anggota proyek untuk bisa mengelola task
-    if (task.project.members.length === 0) {
-      throw new ForbiddenException('Anda bukan anggota proyek ini.');
+    const member = task.project.members[0]; // Akan undefined jika bukan member sama sekali
+    const authContext = new TaskAuthorizationContext();
+
+    // Implementasi Req 4 menggunakan Strategy
+    if (!authContext.checkAccess(userId, task, member)) {
+      throw new ForbiddenException(
+        'Anda tidak memiliki akses untuk mengubah atau menghapus tugas ini. Hanya pembuat tugas atau Project Owner yang diizinkan.',
+      );
     }
 
     return true;

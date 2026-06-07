@@ -1,26 +1,29 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { BoardStageFactory } from './board-stage.factory';
+import { ProjectBuilder } from './project.builder';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private projectBuilder: ProjectBuilder, // Inject Builder Pattern
+  ) {}
 
-  async createProject(userId: string, title: string, description?: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const project = await tx.project.create({
-        data: { title, description },
-      });
-
-      await tx.projectMember.create({
-        data: { projectId: project.id, userId, role: 'OWNER' },
-      });
-
-      const defaultStages = BoardStageFactory.createDefaultStages(project.id);
-      await tx.boardStage.createMany({ data: defaultStages });
-
-      return project;
-    });
+  async createProject(
+    userId: string,
+    title: string,
+    description?: string,
+    customStages?: string[],
+  ) {
+    return this.projectBuilder
+      .setBasicInfo(title, description)
+      .setOwner(userId)
+      .setCustomStages(customStages || [])
+      .build();
   }
 
   async getProjectBoard(projectId: string) {
@@ -32,9 +35,8 @@ export class ProjectsService {
           include: { tasks: { orderBy: { createdAt: 'asc' } } },
         },
         members: {
-          include: {
-            user: { select: { id: true, name: true, email: true } },
-          },
+          where: { status: 'ACCEPTED' }, // Hanya tampilkan member yang sudah accept
+          include: { user: { select: { id: true, name: true, email: true } } },
         },
       },
     });
@@ -44,15 +46,52 @@ export class ProjectsService {
   }
 
   async getUserProjects(userId: string) {
+    // Req 7: Hanya melihat projek dimana user terlibat sebagai OWNER atau sudah ACCEPT invitation
     return this.prisma.project.findMany({
-      where: { members: { some: { userId } } },
+      where: {
+        members: {
+          some: { userId, status: 'ACCEPTED' },
+        },
+      },
       include: {
         members: {
-          where: { userId: userId },
+          where: { userId },
           select: { role: true },
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Req 5: Invite User
+  async inviteMember(projectId: string, email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user)
+      throw new NotFoundException(
+        'User dengan email tersebut tidak ditemukan.',
+      );
+
+    const existing = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: user.id } },
+    });
+
+    if (existing) {
+      if (existing.status === 'PENDING')
+        throw new BadRequestException('User ini sudah diundang (Pending).');
+      throw new BadRequestException('User ini sudah menjadi anggota proyek.');
+    }
+
+    return this.prisma.projectMember.create({
+      data: { projectId, userId: user.id, role: 'MEMBER', status: 'PENDING' },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  // Req 6: Terima Invitation
+  async acceptInvitation(projectId: string, userId: string) {
+    return this.prisma.projectMember.update({
+      where: { projectId_userId: { projectId, userId } },
+      data: { status: 'ACCEPTED' },
     });
   }
 
@@ -66,29 +105,6 @@ export class ProjectsService {
 
     return this.prisma.boardStage.create({
       data: { projectId, title, position: newPosition },
-    });
-  }
-
-  async inviteMember(
-    projectId: string,
-    email: string,
-    role: string = 'MEMBER',
-  ) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user)
-      throw new NotFoundException(
-        'User dengan email tersebut tidak ditemukan.',
-      );
-
-    // Cek apakah sudah jadi member
-    const existing = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: user.id } },
-    });
-    if (existing) throw new Error('User ini sudah menjadi anggota proyek.');
-
-    return this.prisma.projectMember.create({
-      data: { projectId, userId: user.id, role },
-      include: { user: { select: { id: true, name: true, email: true } } },
     });
   }
 

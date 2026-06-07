@@ -9,6 +9,7 @@ export class TasksService {
     projectId: string,
     stageId: string,
     title: string,
+    creatorId: string,
     assignedToUserId?: string,
     dueDate?: Date,
   ) {
@@ -17,6 +18,7 @@ export class TasksService {
         projectId,
         stageId,
         title,
+        creatorId, // Simpan siapa yang membuat task
         assignedTo: assignedToUserId,
         dueDate,
       },
@@ -53,7 +55,12 @@ export class TasksService {
   ) {
     return this.prisma.task.update({
       where: { id: taskId },
-      data,
+      data: {
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate,
+        assignedTo: data.assignedTo,
+      },
     });
   }
 
