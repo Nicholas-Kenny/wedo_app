@@ -35,18 +35,17 @@ export class ProjectsService {
           include: { tasks: { orderBy: { createdAt: 'asc' } } },
         },
         members: {
-          where: { status: 'ACCEPTED' }, // Hanya tampilkan member yang sudah accept
+          where: { status: 'ACCEPTED' },
           include: { user: { select: { id: true, name: true, email: true } } },
         },
       },
     });
 
-    if (!board) throw new NotFoundException('Proyek tidak ditemukan.');
+    if (!board) throw new NotFoundException('Project not found.');
     return board;
   }
 
   async getUserProjects(userId: string) {
-    // Req 7: Hanya melihat projek dimana user terlibat sebagai OWNER atau sudah ACCEPT invitation
     return this.prisma.project.findMany({
       where: {
         members: {
@@ -63,12 +62,11 @@ export class ProjectsService {
     });
   }
 
-  // Req 5: Invite User
   async inviteMember(projectId: string, email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user)
       throw new NotFoundException(
-        'User dengan email tersebut tidak ditemukan.',
+        'User with the specified email not found.',
       );
 
     const existing = await this.prisma.projectMember.findUnique({
@@ -77,8 +75,8 @@ export class ProjectsService {
 
     if (existing) {
       if (existing.status === 'PENDING')
-        throw new BadRequestException('User ini sudah diundang (Pending).');
-      throw new BadRequestException('User ini sudah menjadi anggota proyek.');
+        throw new BadRequestException('User is already invited (Pending).');
+      throw new BadRequestException('User is already a member of the project.');
     }
 
     return this.prisma.projectMember.create({
@@ -87,7 +85,6 @@ export class ProjectsService {
     });
   }
 
-  // Req 6: Terima Invitation
   async acceptInvitation(projectId: string, userId: string) {
     return this.prisma.projectMember.update({
       where: { projectId_userId: { projectId, userId } },

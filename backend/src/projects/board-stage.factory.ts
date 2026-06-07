@@ -1,4 +1,3 @@
-// src/projects/board-stage.factory.ts
 export class BoardStageFactory {
   static createDefaultStages(projectId: string) {
     return [

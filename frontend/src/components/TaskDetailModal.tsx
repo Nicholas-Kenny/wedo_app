@@ -71,9 +71,8 @@ export default function TaskDetailModal({
     fetch();
   }, [taskId, isCreatingNew]);
 
-  // Any project member can edit; backend guards handle final auth
   const canMutate =
-    isOwner || currentUserId === creatorId || isCreatingNew || true;
+    isOwner || currentUserId === creatorId || isCreatingNew;
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -119,7 +118,6 @@ export default function TaskDetailModal({
     }
   };
 
-  // Close on backdrop click
   const onBackdrop = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -148,7 +146,6 @@ export default function TaskDetailModal({
         className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col
                       max-h-[90vh] overflow-hidden"
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="text-lg font-bold text-slate-900">
             {isCreatingNew ? "Add New Task" : "Task Detail"}
@@ -162,7 +159,6 @@ export default function TaskDetailModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
           {error && (
             <div
@@ -175,7 +171,6 @@ export default function TaskDetailModal({
           )}
 
           <div className="space-y-5">
-            {/* Title */}
             <div>
               <label className="field-label">Task Title</label>
               <input
@@ -188,7 +183,6 @@ export default function TaskDetailModal({
               />
             </div>
 
-            {/* Description (existing tasks only) */}
             {!isCreatingNew && (
               <div>
                 <label className="field-label flex items-center gap-1.5">
@@ -204,9 +198,7 @@ export default function TaskDetailModal({
               </div>
             )}
 
-            {/* Bottom two-column grid */}
             <div className="grid sm:grid-cols-2 gap-5">
-              {/* Due date */}
               <div>
                 <label className="field-label flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" /> Deadline
@@ -219,7 +211,6 @@ export default function TaskDetailModal({
                 />
               </div>
 
-              {/* Assignee */}
               <div>
                 <label className="field-label flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5" /> Assigned To
@@ -247,12 +238,10 @@ export default function TaskDetailModal({
           </div>
         </div>
 
-        {/* Footer */}
         <div
           className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 rounded-b-2xl
                         flex items-center justify-between"
         >
-          {/* Delete */}
           <div>
             {!isCreatingNew && canMutate && !showDeleteConfirm && (
               <button
@@ -287,7 +276,6 @@ export default function TaskDetailModal({
             )}
           </div>
 
-          {/* Save / Cancel */}
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-ghost text-sm">
               Cancel

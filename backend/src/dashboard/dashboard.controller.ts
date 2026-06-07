@@ -9,7 +9,6 @@ export class DashboardController {
 
   @Get()
   async getDashboard(@Request() req) {
-    // req.user.sub berasal dari token JWT yang sudah divalidasi oleh AuthGuard
     return this.dashboardFacade.getDashboardData(req.user.sub);
   }
 }

@@ -16,7 +16,6 @@ export class CreatorStrategy implements TaskAccessStrategy {
   }
 }
 
-// Context Class yang akan mengeksekusi semua strategy
 export class TaskAuthorizationContext {
   private strategies: TaskAccessStrategy[] = [
     new OwnerStrategy(),
@@ -24,7 +23,6 @@ export class TaskAuthorizationContext {
   ];
 
   checkAccess(userId: string, task: Task, member?: ProjectMember): boolean {
-    // Akan return true jika salah satu strategy (Owner ATAU Creator) mengembalikan true
     return this.strategies.some((strategy) =>
       strategy.isAuthorized(userId, task, member),
     );

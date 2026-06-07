@@ -1,8 +1,6 @@
 import { Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-// Scope.TRANSIENT memastikan setiap kali ProjectBuilder di-inject,
-// kita mendapatkan instance (objek) yang benar-benar baru.
 @Injectable({ scope: Scope.TRANSIENT })
 export class ProjectBuilder {
   private title!: string;
@@ -15,7 +13,7 @@ export class ProjectBuilder {
   setBasicInfo(title: string, description?: string) {
     this.title = title;
     this.description = description;
-    return this; // Mengembalikan 'this' adalah ciri khas Builder Pattern (Method Chaining)
+    return this; 
   }
 
   setOwner(userId: string) {
@@ -31,7 +29,6 @@ export class ProjectBuilder {
   }
 
   async build() {
-    // Tentukan stages: gunakan custom jika ada, jika tidak gunakan default
     const stagesToCreate =
       this.customStages.length > 0
         ? this.customStages.map((title, index) => ({
@@ -52,7 +49,7 @@ export class ProjectBuilder {
           create: {
             userId: this.ownerId,
             role: 'OWNER',
-            status: 'ACCEPTED', // Langsung ACCEPTED karena dia yang buat
+            status: 'ACCEPTED',
           },
         },
         stages: {

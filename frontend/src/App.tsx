@@ -28,11 +28,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rute Publik */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Rute Terproteksi (Wajib Login & Ada Navbar) */}
         <Route element={<ProtectedRoute />}>
           <Route element={<ProtectedLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -40,7 +38,6 @@ function App() {
           </Route>
         </Route>
 
-        {/* Fallback route */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

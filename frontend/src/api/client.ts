@@ -4,7 +4,6 @@ export const apiClient = axios.create({
   baseURL: "http://localhost:3000",
 });
 
-// Interceptor: otomatis sisipkan token di setiap request
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
@@ -16,7 +15,6 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Interceptor: jika token expired/invalid (401), logout otomatis
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,13 +29,11 @@ apiClient.interceptors.response.use(
   },
 );
 
-// DASHBOARD
 export const getDashboardSummary = async () => {
   const response = await apiClient.get("/dashboard");
   return response.data;
 };
 
-// PROJECTS
 export const createProject = async (data: {
   title: string;
   description?: string;
@@ -57,7 +53,6 @@ export const getProjectBoard = async (projectId: string) => {
   return response.data;
 };
 
-// INVITATION SYSTEM
 export const inviteMember = async (projectId: string, email: string) => {
   const response = await apiClient.post(`/projects/${projectId}/invite`, {
     email,
@@ -70,7 +65,6 @@ export const acceptInvitation = async (projectId: string) => {
   return response.data;
 };
 
-// TASKS
 export const createTask = async (data: {
   projectId: string;
   stageId: string;

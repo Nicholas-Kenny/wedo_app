@@ -22,24 +22,24 @@ function dueBadge(dueDate: string) {
   );
   if (days < 0)
     return {
-      label: `${Math.abs(days)}h terlambat`,
+      label: `${Math.abs(days)}d late`,
       cls: "bg-red-100 text-red-700 border-red-200",
       dot: "bg-red-500",
     };
   if (days === 0)
     return {
-      label: "Hari ini",
+      label: "Today",
       cls: "bg-orange-100 text-orange-700 border-orange-200",
       dot: "bg-orange-500",
     };
   if (days === 1)
     return {
-      label: "Besok",
+      label: "Tomorrow",
       cls: "bg-amber-100 text-amber-700 border-amber-200",
       dot: "bg-amber-400",
     };
   return {
-    label: new Date(dueDate).toLocaleDateString("id-ID", {
+    label: new Date(dueDate).toLocaleDateString("en-US", {
       day: "numeric",
       month: "short",
     }),
@@ -87,6 +87,10 @@ export default function Board() {
 
   useEffect(() => {
     if (projectId) fetchBoard(projectId);
+
+    return () => {
+      useBoardStore.setState({ board: null, isLoading: true });
+    };
   }, [projectId, fetchBoard]);
 
   const handleDragStart = (e: React.DragEvent, taskId: string, sourceStageId: string) => {
@@ -120,7 +124,7 @@ export default function Board() {
       setIsAddingStage(false);
       fetchBoard(projectId);
     } catch {
-      showToast("Gagal menambah kolom.", "error");
+      showToast("Failed to add column.", "error");
     }
   };
 
@@ -132,7 +136,7 @@ export default function Board() {
       setConfirmDeleteStage(null);
       fetchBoard(projectId);
     } catch {
-      showToast("Gagal menghapus kolom.", "error");
+      showToast("Failed to delete column.", "error");
     } finally {
       setIsDeletingStage(false);
     }
@@ -152,7 +156,7 @@ export default function Board() {
   if (!board) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 gap-4 p-8">
-        <p className="text-xl font-bold text-slate-800">Proyek tidak ditemukan</p>
+        <p className="text-xl font-bold text-slate-800">Project not found</p>
         <p className="text-slate-500 text-sm">Check the URL or return to the dashboard.</p>
         <button onClick={() => navigate("/dashboard")} className="btn-primary">
           Return to Dashboard
@@ -167,7 +171,6 @@ export default function Board() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
 
-      {/* ── Header ── */}
       <div className="relative bg-blue-600 px-4 sm:px-6 py-4 sm:py-6 shrink-0 overflow-hidden">
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue-400/30 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-blue-800/30 rounded-full blur-3xl pointer-events-none" />
@@ -215,7 +218,6 @@ export default function Board() {
         </div>
       </div>
 
-      {/* ── Kanban area ── */}
       <div className="flex-1 overflow-x-auto p-3 sm:p-6">
         <div className="flex gap-3 sm:gap-4 items-start min-h-full">
           {board.stages.map((stage, idx) => {
@@ -234,10 +236,8 @@ export default function Board() {
                 onDragOver={(e) => handleDragOver(e, stage.id)}
                 onDragLeave={handleDragLeave}
               >
-                {/* Column color bar */}
                 <div className={`h-1 rounded-t-2xl bg-gradient-to-r ${accent}`} />
 
-                {/* Column header */}
                 <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-2.5">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-700 text-[12px] sm:text-[13px] tracking-wide uppercase truncate max-w-[120px] sm:max-w-none">
@@ -259,7 +259,6 @@ export default function Board() {
                   )}
                 </div>
 
-                {/* Delete confirm */}
                 {confirmDeleteStage === stage.id && (
                   <div className="mx-3 mb-2 bg-red-50 border border-red-200 rounded-xl p-3 text-center">
                     <p className="text-xs text-red-700 font-medium mb-2">
@@ -287,7 +286,6 @@ export default function Board() {
                   </div>
                 )}
 
-                {/* Task list */}
                 <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-2 min-h-[80px]">
                   {stage.tasks.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-6 text-slate-300">
@@ -383,7 +381,6 @@ export default function Board() {
                   })}
                 </div>
 
-                {/* Add task button */}
                 <div className="px-3 pb-3 pt-1">
                   <button
                     onClick={() => setSelectedTaskId(`NEW-${stage.id}`)}
@@ -399,7 +396,6 @@ export default function Board() {
             );
           })}
 
-          {/* ── Add Column ── */}
           {isOwner && (
             <div className="w-[240px] sm:w-[272px] shrink-0">
               {isAddingStage ? (
@@ -446,7 +442,6 @@ export default function Board() {
         </div>
       </div>
 
-      {/* Task Detail Modal */}
       {selectedTaskId && (
         <TaskDetailModal
           taskId={selectedTaskId}

@@ -43,7 +43,6 @@ export function Toast({ message, type, onClose, duration = 3500 }: ToastProps) {
   );
 }
 
-/* ── useToast hook ── */
 import { useState, useCallback } from "react";
 
 interface ToastState {

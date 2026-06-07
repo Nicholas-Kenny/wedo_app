@@ -16,7 +16,7 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Token tidak ditemukan. Silakan login.');
+      throw new UnauthorizedException('Token not found. Please login.');
     }
 
     try {
@@ -24,7 +24,7 @@ export class AuthGuard implements CanActivate {
       
       request['user'] = payload;
     } catch {
-      throw new UnauthorizedException('Token tidak valid atau sudah kadaluarsa.');
+      throw new UnauthorizedException('Token is invalid or has expired.');
     }
     return true;
   }

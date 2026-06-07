@@ -15,18 +15,15 @@ export class AuthService {
   ) {}
 
   async register(name: string, email: string, pass: string) {
-    // 1. Cek apakah email sudah terdaftar
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
     if (existingUser) {
-      throw new BadRequestException('Email sudah digunakan!');
+      throw new BadRequestException('Email is already in use!');
     }
 
-    // 2. Hash password
     const hashedPassword = await bcrypt.hash(pass, 10);
 
-    // 3. Simpan ke database
     const user = await this.prisma.user.create({
       data: {
         name,
@@ -35,25 +32,21 @@ export class AuthService {
       },
     });
 
-    // 4. Jangan kembalikan password di response
     const { password, ...result } = user;
     return result;
   }
 
   async login(email: string, pass: string) {
-    // 1. Cari user berdasarkan email
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
-      throw new UnauthorizedException('Kredensial tidak valid');
+      throw new UnauthorizedException('Credentials are invalid');
     }
 
-    // 2. Cocokkan password
     const isPasswordValid = await bcrypt.compare(pass, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Kredensial tidak valid');
+      throw new UnauthorizedException('Credentials are invalid');
     }
 
-    // 3. Buat JWT Token
     const payload = { sub: user.id, email: user.email, name: user.name };
     return {
       access_token: await this.jwtService.signAsync(payload),

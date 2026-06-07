@@ -7,7 +7,6 @@ export class AuthController {
 
   @Post('register')
   register(@Body() body: any) {
-    // Note: Nanti kita bisa tambahkan DTO (Data Transfer Object) untuk validasi input
     return this.authService.register(body.name, body.email, body.password);
   }
 

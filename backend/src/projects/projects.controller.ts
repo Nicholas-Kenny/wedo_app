@@ -42,8 +42,6 @@ export class ProjectsController {
     return this.projectsService.getProjectBoard(id);
   }
 
-  // --- INVITATION ENDPOINTS ---
-
   @Post(':id/invite')
   @UseGuards(OwnerOnlyGuard) // Hanya owner yang bisa invite
   async inviteMember(
@@ -57,8 +55,6 @@ export class ProjectsController {
   async acceptInvitation(@Param('id') projectId: string, @Request() req) {
     return this.projectsService.acceptInvitation(projectId, req.user.sub);
   }
-
-  // --- STAGE & DELETE ENDPOINTS ---
 
   @Post(':id/stages')
   @UseGuards(OwnerOnlyGuard)

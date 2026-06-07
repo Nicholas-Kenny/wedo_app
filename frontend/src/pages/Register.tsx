@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { apiClient } from "../api/client";
 import { Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
+import wedoLogo from "../assets/wedo-logo.png";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -15,7 +16,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
-      setError("Password minimal 6 karakter.");
+      setError("Password must be at least 6 characters.");
       return;
     }
     setError("");
@@ -28,7 +29,7 @@ export default function Register() {
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
-          "Registrasi gagal. Email mungkin sudah terdaftar.",
+          "Registration failed. Email might already be registered.",
       );
     } finally {
       setIsLoading(false);
@@ -37,7 +38,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Left panel */}
       <div
         className="hidden lg:flex lg:w-1/2 bg-blue-600 flex-col items-center
                       justify-center p-12 relative overflow-hidden"
@@ -60,14 +60,7 @@ export default function Register() {
         <div className="absolute bottom-32 right-1/3 w-6 h-6 bg-white/15 rotate-45 rounded-sm animate-spin [animation-duration:15s] [animation-direction:reverse]" />
 
         <div className="relative z-10 text-center text-white flex flex-col items-center justify-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-sm border border-white/30">
-            <svg viewBox="0 0 24 24" fill="none" className="w-9 h-9 text-white" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-                  M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-              />
-            </svg>
-          </div>
+          <img src={wedoLogo} alt="WeDo" className="h-20 w-auto mb-6 drop-shadow-lg" />
           <h1 className="text-5xl font-extrabold tracking-tight mb-4">Join WeDo</h1>
           <p className="text-blue-100 text-lg max-w-xs leading-relaxed">
             Create a free account and start<br />managing your team projects today.
@@ -88,19 +81,10 @@ export default function Register() {
         </div>
       </div>
 
-      {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
           <div className="flex items-center gap-2.5 justify-center mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-                    M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                />
-              </svg>
-            </div>
+            <img src={wedoLogo} alt="WeDo" className="h-12 w-auto mb-6 drop-shadow-lg" />
             <span className="text-2xl font-extrabold text-slate-900">WeDo</span>
           </div>
 
@@ -160,7 +144,6 @@ export default function Register() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {/* Password strength hint */}
                 {password.length > 0 && (
                   <p className={`text-xs mt-1.5 font-medium ${
                     password.length < 6 ? "text-red-500" : "text-green-600"

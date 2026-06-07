@@ -21,7 +21,7 @@ export class OwnerOnlyGuard implements CanActivate {
 
     if (!member) {
       throw new ForbiddenException(
-        'Hanya OWNER yang dapat melakukan tindakan ini.',
+        'Only the OWNER can perform this action.',
       );
     }
 

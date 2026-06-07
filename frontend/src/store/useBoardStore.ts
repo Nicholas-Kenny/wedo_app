@@ -46,13 +46,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   isLoading: true,
 
   fetchBoard: async (projectId: string) => {
-    set({ isLoading: true });
+    set({ isLoading: true, board: null }); // ← tambah board: null di sini
     try {
       const data = await getProjectBoard(projectId);
       set({ board: data, isLoading: false });
     } catch (error) {
-      console.error("Gagal memuat board", error);
-      set({ isLoading: false });
+      console.error("Failed to load board", error);
+      set({ isLoading: false, board: null });
     }
   },
 
@@ -66,7 +66,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const { board } = get();
     if (!board) return;
 
-    // 1. Lakukan perubahan di UI terlebih dahulu (Optimistic)
     const newStages = board.stages.map((stage) => {
       if (stage.id === sourceStageId) {
         return { ...stage, tasks: stage.tasks.filter((t) => t.id !== taskId) };
@@ -84,17 +83,15 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
     set({ board: { ...board, stages: newStages } });
 
-    // 2. Panggil API di background
     try {
       await moveTask(taskId, destStageId);
     } catch (error) {
       console.error(
-        "Gagal memindahkan task di server, membatalkan perubahan UI",
+        "Failed to move task on server, rolling back UI changes",
         error,
       );
-      // Jika gagal, kembalikan data dari server (Rollback)
       get().fetchBoard(board.id);
-      alert("Anda tidak memiliki akses untuk memindahkan tugas ini.");
+      alert("You do not have access to move this task.");
     }
   },
 }));

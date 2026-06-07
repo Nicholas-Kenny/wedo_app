@@ -77,7 +77,7 @@ export default function Dashboard() {
       setUpcomingTasks(data.upcomingTasks || []);
       setPendingInvitations(data.pendingInvitations || []);
     } catch {
-      /* silently fail */
+      showToast("Failed to load dashboard. Please refresh.", "error")
     } finally {
       setIsLoading(false);
     }
@@ -97,9 +97,9 @@ export default function Dashboard() {
       setNewTitle(""); setNewDescription(""); setCustomStagesInput("");
       setIsCreateModalOpen(false);
       fetchData();
-      showToast("Proyek berhasil dibuat!", "success");
+      showToast("Project created successfully!", "success");
     } catch {
-      showToast("Gagal membuat proyek. Coba lagi.", "error");
+      showToast("Failed to create project. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -111,9 +111,9 @@ export default function Dashboard() {
     try {
       await inviteMember(inviteModalProjectId, inviteEmail);
       setInviteModalProjectId(null); setInviteEmail("");
-      showToast("Undangan berhasil dikirim!", "success");
+      showToast("Invitation sent successfully!", "success");
     } catch (err: any) {
-      showToast(err.response?.data?.message || "Gagal mengundang user.", "error");
+      showToast(err.response?.data?.message || "Failed to invite user.", "error");
     }
   };
 
@@ -121,14 +121,14 @@ export default function Dashboard() {
     try {
       await acceptInvitation(projectId);
       fetchData();
-      showToast("Berhasil bergabung dengan proyek!", "success");
+      showToast("Successfully joined the project!", "success");
     } catch {
-      showToast("Gagal menerima undangan.", "error");
+      showToast("Failed to accept invitation.", "error");
     }
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" });
+    new Date(d).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
 
   const getDueSeverity = (dueDate: string) => {
     const days = Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86400000);
@@ -143,7 +143,7 @@ export default function Dashboard() {
       <div className="flex-1 flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3 text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin" />
-          <p className="text-sm font-medium">Memuat dashboard...</p>
+          <p className="text-sm font-medium">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -155,7 +155,6 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[1100px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
-          {/* ── Hero Banner ── */}
           <div className="relative bg-blue-600 rounded-2xl p-4 sm:p-8 mb-5 sm:mb-7 overflow-hidden">
             <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue-400/30 rounded-full blur-2xl pointer-events-none" />
             <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-blue-800/30 rounded-full blur-3xl pointer-events-none" />
@@ -163,7 +162,6 @@ export default function Dashboard() {
             <div className="absolute top-4 right-32 w-16 h-16 bg-white/10 rounded-2xl rotate-12 pointer-events-none" />
             <div className="absolute bottom-4 left-16 w-10 h-10 bg-white/10 rounded-xl -rotate-12 pointer-events-none" />
 
-            {/* Title row */}
             <div className="relative z-10 flex items-start justify-between gap-3 flex-wrap">
               <div>
                 <h1 className="text-xl sm:text-[26px] font-extrabold text-white tracking-tight leading-tight">
@@ -179,11 +177,10 @@ export default function Dashboard() {
                           px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5
                           transition-all duration-150 whitespace-nowrap"
               >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> New Project
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Create Project
               </button>
             </div>
 
-            {/* Stats — use grid so they wrap cleanly on narrow screens */}
             <div className="relative z-10 flex flex-wrap gap-2 mt-4 sm:mt-6">
               {[
                 { num: projects.length, label: "Active Projects" },
@@ -193,7 +190,7 @@ export default function Dashboard() {
                 <div
                   key={label}
                   className="bg-white/15 border border-white/20 backdrop-blur-sm rounded-xl
-                             px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2"
+                            px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2"
                 >
                   <span className="text-lg sm:text-[22px] font-extrabold text-white leading-none">
                     {num}
@@ -206,12 +203,11 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ── Pending Invitations Banner ── */}
           {pendingInvitations.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6">
               <h2 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
                 <BellRing className="w-4 h-4" />
-                Undangan Masuk ({pendingInvitations.length})
+                Incoming Invitations ({pendingInvitations.length})
               </h2>
               <div className="grid sm:grid-cols-2 gap-3">
                 {pendingInvitations.map((inv) => (
@@ -219,7 +215,7 @@ export default function Dashboard() {
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{inv.project.title}</p>
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                        {inv.project.description || "Tanpa deskripsi"}
+                        {inv.project.description || "No description"}
                       </p>
                     </div>
                     <button
@@ -227,7 +223,7 @@ export default function Dashboard() {
                       className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600
                                 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors w-full"
                     >
-                      <CheckCircle className="w-3.5 h-3.5" /> Terima Undangan
+                      <CheckCircle className="w-3.5 h-3.5" /> Accept Invitation
                     </button>
                   </div>
                 ))}
@@ -235,10 +231,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* ── Content Grid ── */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 sm:gap-6">
 
-            {/* Left — Projects */}
             <div>
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <Briefcase className="w-4 h-4 text-blue-600" />
@@ -254,19 +248,19 @@ export default function Dashboard() {
                   <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3">
                     <Briefcase className="w-7 h-7 text-slate-300" />
                   </div>
-                  <p className="font-semibold text-slate-500 text-sm">Belum ada proyek.</p>
-                  <p className="text-xs mt-1 text-slate-400">Buat proyek pertama atau tunggu undangan.</p>
+                  <p className="font-semibold text-slate-500 text-sm">No projects yet.</p>
+                  <p className="text-xs mt-1 text-slate-400">Create your first project or wait for an invitation.</p>
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="mt-5 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
                               text-sm font-bold px-4 py-2 rounded-xl transition-colors"
                   >
-                    <Plus className="w-4 h-4" /> Buat Proyek
+                    <Plus className="w-4 h-4" /> Create Project
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {projects.map((project, idx) => {
+                  {projects.filter((p) => p != null && p.title != null).map((project, idx) => {
                     const isOwner = project.members?.[0]?.role === "OWNER";
                     return (
                       <div
@@ -276,7 +270,6 @@ export default function Dashboard() {
                                   hover:border-blue-300 hover:shadow-[0_8px_24px_rgba(37,99,235,0.12)]
                                   hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group"
                       >
-                        {/* top color bar */}
                         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-600 to-blue-400 rounded-t-2xl" />
 
                         <div className="flex items-start justify-between mb-3 mt-1">
@@ -295,7 +288,7 @@ export default function Dashboard() {
 
                         <p className="font-bold text-[14px] sm:text-[15px] text-slate-900 truncate mb-1">{project.title}</p>
                         <p className="text-[12px] text-slate-400 font-medium line-clamp-2 mb-3 sm:mb-4">
-                          {project.description || "Tidak ada deskripsi."}
+                          {project.description || "No description"}
                         </p>
 
                         {isOwner && (
@@ -312,7 +305,6 @@ export default function Dashboard() {
                     );
                   })}
 
-                  {/* Add new project card */}
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="min-h-[140px] sm:min-h-[160px] rounded-2xl border-2 border-dashed border-slate-300
@@ -330,7 +322,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Right — Deadline Sidebar */}
             <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 h-fit lg:sticky lg:top-[76px]">
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
@@ -366,7 +357,7 @@ export default function Dashboard() {
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold text-slate-800 truncate">{task.title}</p>
                           <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                            {task.project.title} · {task.stage.title}
+                            {task.project?.title} · {task.stage?.title ?? "—"}
                           </p>
                         </div>
                         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0 flex items-center gap-1 ${badgeCls[sev]}`}>
@@ -385,7 +376,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Modal: New Project ── */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl p-5 sm:p-7 shadow-2xl border border-slate-200
@@ -405,12 +395,12 @@ export default function Dashboard() {
                 <label className="field-label">Project Name <span className="text-red-500">*</span></label>
                 <input required autoFocus type="text" value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="input" placeholder="Aplikasi WeDo" />
+                  className="input" placeholder="WeDo Application" />
               </div>
               <div>
                 <label className="field-label">Description</label>
                 <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)}
-                  className="input resize-none h-20 sm:h-24" placeholder="Tujuan proyek ini..." />
+                  className="input resize-none h-20 sm:h-24" placeholder="Project goal..." />
               </div>
               <div className="bg-blue-50 p-3 sm:p-4 rounded-xl border border-blue-100">
                 <label className="block text-xs font-bold text-blue-800 mb-1.5">Kanban Column Customization</label>
@@ -419,7 +409,7 @@ export default function Dashboard() {
                   onChange={(e) => setCustomStagesInput(e.target.value)}
                   className="w-full border border-blue-200 rounded-xl px-4 py-2.5 text-sm
                             bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Backlog, Review, Testing, Selesai" />
+                  placeholder="Backlog, Review, Testing, Done" />
               </div>
               <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button type="button" onClick={() => setIsCreateModalOpen(false)}
@@ -435,13 +425,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Modal: Invite Member ── */}
       {inviteModalProjectId && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 sm:p-7 shadow-2xl border border-slate-200">
             <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
             <div className="flex justify-between items-center mb-5 sm:mb-6">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Undang Anggota</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Invite Member</h2>
               <button
                 onClick={() => { setInviteModalProjectId(null); setInviteEmail(""); }}
                 className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-xl transition-colors"
@@ -451,20 +440,20 @@ export default function Dashboard() {
             </div>
             <form onSubmit={handleInvite} className="space-y-4 sm:space-y-5">
               <div>
-                <label className="field-label">Email Pengguna</label>
+                <label className="field-label">User Email</label>
                 <div className="relative">
                   <Users className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                   <input required autoFocus type="email" value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="input pl-10" placeholder="nama@email.com" />
+                    className="input pl-10" placeholder="name@email.com" />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button type="button"
                   onClick={() => { setInviteModalProjectId(null); setInviteEmail(""); }}
-                  className="btn-ghost">Batal</button>
+                  className="btn-ghost">Cancel</button>
                 <button type="submit" className="btn-primary flex items-center gap-2">
-                  <Users className="w-4 h-4" /> Kirim Undangan
+                  <Users className="w-4 h-4" /> Send Invitation
                 </button>
               </div>
             </form>

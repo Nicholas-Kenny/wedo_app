@@ -18,7 +18,7 @@ export class TasksService {
         projectId,
         stageId,
         title,
-        creatorId, // Simpan siapa yang membuat task
+        creatorId, 
         assignedTo: assignedToUserId,
         dueDate,
       },
@@ -40,7 +40,7 @@ export class TasksService {
       },
     });
 
-    if (!task) throw new NotFoundException('Tugas tidak ditemukan.');
+    if (!task) throw new NotFoundException('Task not found.');
     return task;
   }
 

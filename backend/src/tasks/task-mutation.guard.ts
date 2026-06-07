@@ -30,10 +30,9 @@ export class TaskMutationGuard implements CanActivate {
 
     if (!task) throw new NotFoundException('Tugas tidak ditemukan.');
 
-    const member = task.project.members[0]; // Akan undefined jika bukan member sama sekali
+    const member = task.project.members[0]; 
     const authContext = new TaskAuthorizationContext();
 
-    // Implementasi Req 4 menggunakan Strategy
     if (!authContext.checkAccess(userId, task, member)) {
       throw new ForbiddenException(
         'You do not have access to modify or delete this task. Only the task creator or Project Owner is permitted.',
