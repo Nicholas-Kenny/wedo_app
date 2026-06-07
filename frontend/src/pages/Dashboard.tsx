@@ -153,47 +153,54 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1100px] mx-auto px-6 py-8">
+        <div className="max-w-[1100px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
           {/* ── Hero Banner ── */}
-          <div className="relative bg-blue-600 rounded-2xl p-8 mb-7 overflow-hidden">
-            {/* decorative blobs */}
+          <div className="relative bg-blue-600 rounded-2xl p-4 sm:p-8 mb-5 sm:mb-7 overflow-hidden">
             <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue-400/30 rounded-full blur-2xl pointer-events-none" />
             <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-blue-800/30 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-blue-300/20 rounded-full blur-xl pointer-events-none" />
-            {/* floating shapes */}
             <div className="absolute top-4 right-32 w-16 h-16 bg-white/10 rounded-2xl rotate-12 pointer-events-none" />
             <div className="absolute bottom-4 left-16 w-10 h-10 bg-white/10 rounded-xl -rotate-12 pointer-events-none" />
 
-            <div className="relative z-10 flex items-start justify-between gap-4 flex-wrap">
+            {/* Title row */}
+            <div className="relative z-10 flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <h1 className="text-[26px] font-extrabold text-white tracking-tight leading-tight">
+                <h1 className="text-xl sm:text-[26px] font-extrabold text-white tracking-tight leading-tight">
                   Welcome back, {userName.split(" ")[0]}
                 </h1>
-                <p className="text-blue-200 text-sm font-medium mt-1">
+                <p className="text-blue-200 text-xs sm:text-sm font-medium mt-1">
                   Simplifying Your Workflow, Amplifying Your Results.
                 </p>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-1.5 bg-white text-blue-700 font-bold text-sm
-                          px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5
+                className="flex items-center gap-1.5 bg-white text-blue-700 font-bold text-xs sm:text-sm
+                          px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5
                           transition-all duration-150 whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" /> New Project
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> New Project
               </button>
             </div>
 
-            {/* Stats */}
-            <div className="relative z-10 flex gap-4 mt-6 flex-wrap">
+            {/* Stats — use grid so they wrap cleanly on narrow screens */}
+            <div className="relative z-10 flex flex-wrap gap-2 mt-4 sm:mt-6">
               {[
                 { num: projects.length, label: "Active Projects" },
                 { num: upcomingTasks.length, label: "Due This Week" },
                 { num: pendingInvitations.length, label: "Invitations" },
               ].map(({ num, label }) => (
-                <div key={label} className="bg-white/15 border border-white/20 backdrop-blur-sm rounded-xl px-5 py-3 min-w-[110px]">
-                  <div className="text-[22px] font-extrabold text-white leading-none mb-1">{num}</div>
-                  <div className="text-[12px] text-blue-200 font-medium">{label}</div>
+                <div
+                  key={label}
+                  className="bg-white/15 border border-white/20 backdrop-blur-sm rounded-xl
+                             px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2"
+                >
+                  <span className="text-lg sm:text-[22px] font-extrabold text-white leading-none">
+                    {num}
+                  </span>
+                  <span className="text-[11px] sm:text-[12px] text-blue-200 font-medium leading-tight">
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -201,7 +208,7 @@ export default function Dashboard() {
 
           {/* ── Pending Invitations Banner ── */}
           {pendingInvitations.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6">
               <h2 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
                 <BellRing className="w-4 h-4" />
                 Undangan Masuk ({pendingInvitations.length})
@@ -229,11 +236,11 @@ export default function Dashboard() {
           )}
 
           {/* ── Content Grid ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 sm:gap-6">
 
             {/* Left — Projects */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <Briefcase className="w-4 h-4 text-blue-600" />
                 <span className="text-[15px] font-bold text-slate-900">Active Projects</span>
                 <span className="bg-blue-50 text-blue-600 border border-blue-200 text-[11px] font-bold px-2 py-0.5 rounded-full">
@@ -242,7 +249,7 @@ export default function Dashboard() {
               </div>
 
               {projects.length === 0 ? (
-                <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl py-16
+                <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl py-12 sm:py-16
                                 flex flex-col items-center text-slate-400">
                   <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-3">
                     <Briefcase className="w-7 h-7 text-slate-300" />
@@ -258,14 +265,14 @@ export default function Dashboard() {
                   </button>
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {projects.map((project, idx) => {
                     const isOwner = project.members?.[0]?.role === "OWNER";
                     return (
                       <div
                         key={project.id}
                         onClick={() => navigate(`/board/${project.id}`)}
-                        className="relative bg-white border border-slate-200 rounded-2xl p-5 cursor-pointer
+                        className="relative bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 cursor-pointer
                                   hover:border-blue-300 hover:shadow-[0_8px_24px_rgba(37,99,235,0.12)]
                                   hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group"
                       >
@@ -273,7 +280,7 @@ export default function Dashboard() {
                         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-600 to-blue-400 rounded-t-2xl" />
 
                         <div className="flex items-start justify-between mb-3 mt-1">
-                          <div className="w-10 h-10 bg-blue-50 rounded-[10px] flex items-center justify-center text-lg
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-50 rounded-[10px] flex items-center justify-center text-lg
                                           group-hover:scale-110 transition-transform">
                             {PROJECT_EMOJIS[idx % PROJECT_EMOJIS.length]}
                           </div>
@@ -286,8 +293,8 @@ export default function Dashboard() {
                           </span>
                         </div>
 
-                        <p className="font-bold text-[15px] text-slate-900 truncate mb-1">{project.title}</p>
-                        <p className="text-[12px] text-slate-400 font-medium line-clamp-2 mb-4">
+                        <p className="font-bold text-[14px] sm:text-[15px] text-slate-900 truncate mb-1">{project.title}</p>
+                        <p className="text-[12px] text-slate-400 font-medium line-clamp-2 mb-3 sm:mb-4">
                           {project.description || "Tidak ada deskripsi."}
                         </p>
 
@@ -308,7 +315,7 @@ export default function Dashboard() {
                   {/* Add new project card */}
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="min-h-[160px] rounded-2xl border-2 border-dashed border-slate-300
+                    className="min-h-[140px] sm:min-h-[160px] rounded-2xl border-2 border-dashed border-slate-300
                               flex flex-col items-center justify-center gap-2 text-slate-400
                               font-semibold text-sm hover:border-blue-400 hover:text-blue-500
                               hover:bg-blue-50 transition-all group"
@@ -324,7 +331,7 @@ export default function Dashboard() {
             </div>
 
             {/* Right — Deadline Sidebar */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 h-fit sticky top-[76px]">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 h-fit lg:sticky lg:top-[76px]">
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
                   <CalendarClock className="w-4 h-4 text-red-500" />
@@ -333,12 +340,12 @@ export default function Dashboard() {
               </div>
 
               {upcomingTasks.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-6 sm:py-8 text-slate-400">
                   <p className="text-sm font-semibold text-slate-500">All Clear!</p>
                   <p className="text-xs text-slate-400 mt-1">There is no urgent deadline.</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {upcomingTasks.map((task) => {
                     const sev = getDueSeverity(task.dueDate);
                     const dotColor: Record<string, string> = {
@@ -380,10 +387,12 @@ export default function Dashboard() {
 
       {/* ── Modal: New Project ── */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-7 shadow-2xl border border-slate-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Create New Project</h2>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl p-5 sm:p-7 shadow-2xl border border-slate-200
+                          max-h-[90dvh] overflow-y-auto">
+            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
+            <div className="flex justify-between items-center mb-5 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Create New Project</h2>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
                 className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-xl transition-colors"
@@ -391,7 +400,7 @@ export default function Dashboard() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateProject} className="space-y-5">
+            <form onSubmit={handleCreateProject} className="space-y-4 sm:space-y-5">
               <div>
                 <label className="field-label">Project Name <span className="text-red-500">*</span></label>
                 <input required autoFocus type="text" value={newTitle}
@@ -401,9 +410,9 @@ export default function Dashboard() {
               <div>
                 <label className="field-label">Description</label>
                 <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)}
-                  className="input resize-none h-24" placeholder="Tujuan proyek ini..." />
+                  className="input resize-none h-20 sm:h-24" placeholder="Tujuan proyek ini..." />
               </div>
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <div className="bg-blue-50 p-3 sm:p-4 rounded-xl border border-blue-100">
                 <label className="block text-xs font-bold text-blue-800 mb-1.5">Kanban Column Customization</label>
                 <p className="text-xs text-blue-600 mb-3">Separate with comma. Default: To Do, In Progress, Done.</p>
                 <input type="text" value={customStagesInput}
@@ -428,10 +437,11 @@ export default function Dashboard() {
 
       {/* ── Modal: Invite Member ── */}
       {inviteModalProjectId && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-7 shadow-2xl border border-slate-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Undang Anggota</h2>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 sm:p-7 shadow-2xl border border-slate-200">
+            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
+            <div className="flex justify-between items-center mb-5 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Undang Anggota</h2>
               <button
                 onClick={() => { setInviteModalProjectId(null); setInviteEmail(""); }}
                 className="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-xl transition-colors"
@@ -439,7 +449,7 @@ export default function Dashboard() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleInvite} className="space-y-5">
+            <form onSubmit={handleInvite} className="space-y-4 sm:space-y-5">
               <div>
                 <label className="field-label">Email Pengguna</label>
                 <div className="relative">

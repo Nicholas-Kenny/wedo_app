@@ -59,7 +59,6 @@ function getAdjacentStages(
   };
 }
 
-// Soft pastel accent per column index
 const COLUMN_ACCENTS = [
   "from-blue-500 to-blue-400",
   "from-violet-500 to-violet-400",
@@ -80,9 +79,7 @@ export default function Board() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isAddingStage, setIsAddingStage] = useState(false);
   const [newStageTitle, setNewStageTitle] = useState("");
-  const [confirmDeleteStage, setConfirmDeleteStage] = useState<string | null>(
-    null,
-  );
+  const [confirmDeleteStage, setConfirmDeleteStage] = useState<string | null>(null);
   const [isDeletingStage, setIsDeletingStage] = useState(false);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
@@ -92,11 +89,7 @@ export default function Board() {
     if (projectId) fetchBoard(projectId);
   }, [projectId, fetchBoard]);
 
-  const handleDragStart = (
-    e: React.DragEvent,
-    taskId: string,
-    sourceStageId: string,
-  ) => {
+  const handleDragStart = (e: React.DragEvent, taskId: string, sourceStageId: string) => {
     e.dataTransfer.setData("taskId", taskId);
     e.dataTransfer.setData("sourceStageId", sourceStageId);
   };
@@ -122,9 +115,7 @@ export default function Board() {
     e.preventDefault();
     if (!newStageTitle.trim() || !projectId) return;
     try {
-      await apiClient.post(`/projects/${projectId}/stages`, {
-        title: newStageTitle,
-      });
+      await apiClient.post(`/projects/${projectId}/stages`, { title: newStageTitle });
       setNewStageTitle("");
       setIsAddingStage(false);
       fetchBoard(projectId);
@@ -177,7 +168,7 @@ export default function Board() {
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="relative bg-blue-600 px-6 py-6 shrink-0 overflow-hidden">
+      <div className="relative bg-blue-600 px-4 sm:px-6 py-4 sm:py-6 shrink-0 overflow-hidden">
         <div className="absolute -top-10 -right-10 w-48 h-48 bg-blue-400/30 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -bottom-16 left-1/3 w-64 h-64 bg-blue-800/30 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-blue-300/20 rounded-full blur-xl pointer-events-none" />
@@ -185,10 +176,10 @@ export default function Board() {
         <div className="absolute bottom-4 left-16 w-10 h-10 bg-white/10 rounded-xl -rotate-12 pointer-events-none" />
 
         <div className="relative z-10">
-          <h1 className="text-[22px] font-extrabold text-white tracking-tight leading-tight">
+          <h1 className="text-lg sm:text-[22px] font-extrabold text-white tracking-tight leading-tight">
             {board.title}
           </h1>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
               isOwner
                 ? "bg-white/25 text-white border-white/30"
@@ -196,30 +187,37 @@ export default function Board() {
             }`}>
               {isOwner ? "Owner" : "Member"}
             </span>
-            <span className="text-xs text-blue-200 font-medium">
+            <span className="text-xs text-blue-200 font-medium truncate">
               {board.members.length} member(s) · {board.stages.reduce((a, s) => a + s.tasks.length, 0)} task(s) · {board.stages.length} columns
             </span>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="relative z-10 flex gap-3 mt-5 flex-wrap">
+        <div className="relative z-10 flex flex-wrap gap-2 mt-3 sm:mt-5">
           {[
             { num: board.stages.length, label: "Columns" },
             { num: board.stages.reduce((a, s) => a + s.tasks.length, 0), label: "Total Tasks" },
             { num: board.members.length, label: "Members" },
           ].map(({ num, label }) => (
-            <div key={label} className="bg-white/15 border border-white/20 backdrop-blur-sm rounded-xl px-4 py-2.5 min-w-[90px]">
-              <div className="text-[20px] font-extrabold text-white leading-none mb-0.5">{num}</div>
-              <div className="text-[11px] text-blue-200 font-medium">{label}</div>
+            <div
+              key={label}
+              className="bg-white/15 border border-white/20 backdrop-blur-sm rounded-xl
+                        px-3 py-2 flex items-center gap-2"
+            >
+              <span className="text-[18px] sm:text-[20px] font-extrabold text-white leading-none">
+                {num}
+              </span>
+              <span className="text-[11px] text-blue-200 font-medium leading-tight">
+                {label}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── Kanban area ── */}
-      <div className="flex-1 overflow-x-auto p-6">
-        <div className="flex gap-4 items-start min-h-full">
+      <div className="flex-1 overflow-x-auto p-3 sm:p-6">
+        <div className="flex gap-3 sm:gap-4 items-start min-h-full">
           {board.stages.map((stage, idx) => {
             const accent = COLUMN_ACCENTS[idx % COLUMN_ACCENTS.length];
             const isDragTarget = dragOverStage === stage.id;
@@ -227,7 +225,7 @@ export default function Board() {
             return (
               <div
                 key={stage.id}
-                className={`w-[272px] shrink-0 flex flex-col rounded-2xl border transition-all duration-150 max-h-full
+                className={`w-[240px] sm:w-[272px] shrink-0 flex flex-col rounded-2xl border transition-all duration-150 max-h-full
                   ${isDragTarget
                     ? "border-blue-400 shadow-[0_0_0_2px_rgba(59,130,246,0.3)] bg-blue-50/50"
                     : "border-slate-200/80 bg-white shadow-sm"
@@ -240,20 +238,20 @@ export default function Board() {
                 <div className={`h-1 rounded-t-2xl bg-gradient-to-r ${accent}`} />
 
                 {/* Column header */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
+                <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-700 text-[13px] tracking-wide uppercase">
+                    <span className="font-bold text-slate-700 text-[12px] sm:text-[13px] tracking-wide uppercase truncate max-w-[120px] sm:max-w-none">
                       {stage.title}
                     </span>
                     <span className="text-[11px] bg-slate-100 border border-slate-200 text-slate-500
-                                     font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                                    font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
                       {stage.tasks.length}
                     </span>
                   </div>
                   {isOwner && (
                     <button
                       onClick={() => setConfirmDeleteStage(stage.id)}
-                      className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors"
+                      className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors shrink-0"
                       title="Delete Column"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -311,21 +309,19 @@ export default function Board() {
                         draggable
                         onDragStart={(e) => handleDragStart(e, task.id, stage.id)}
                         onClick={() => setSelectedTaskId(task.id)}
-                        className="bg-white rounded-xl border border-slate-200 p-3.5
+                        className="bg-white rounded-xl border border-slate-200 p-3
                                   hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:border-blue-200
                                   hover:-translate-y-0.5 transition-all cursor-pointer
                                   active:scale-[0.98] select-none"
                       >
-                        {/* Task title */}
-                        <p className="font-semibold text-slate-800 text-[13px] leading-snug mb-3">
+                        <p className="font-semibold text-slate-800 text-[13px] leading-snug mb-2.5">
                           {task.title}
                         </p>
 
-                        {/* Footer row */}
                         <div className="flex items-center justify-between gap-2">
                           {badge ? (
                             <span className={`inline-flex items-center gap-1 text-[11px] font-semibold
-                                              border rounded-full px-2 py-0.5 ${badge.cls}`}>
+                                              border rounded-full px-2 py-0.5 shrink-0 ${badge.cls}`}>
                               <Calendar className="w-3 h-3" />
                               {badge.label}
                             </span>
@@ -334,7 +330,6 @@ export default function Board() {
                           )}
 
                           <div className="flex items-center gap-1 ml-auto">
-                            {/* Stage navigation arrows */}
                             {(() => {
                               const { prev, next } = getAdjacentStages(board.stages, stage.id);
                               return (
@@ -406,7 +401,7 @@ export default function Board() {
 
           {/* ── Add Column ── */}
           {isOwner && (
-            <div className="w-[272px] shrink-0">
+            <div className="w-[240px] sm:w-[272px] shrink-0">
               {isAddingStage ? (
                 <form
                   onSubmit={handleAddStage}
@@ -423,18 +418,10 @@ export default function Board() {
                     className="input text-sm mb-3"
                   />
                   <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={!newStageTitle.trim()}
-                      className="btn-primary flex-1 text-sm py-2"
-                    >
+                    <button type="submit" disabled={!newStageTitle.trim()} className="btn-primary flex-1 text-sm py-2">
                       Save
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingStage(false)}
-                      className="btn-ghost flex-1 text-sm py-2"
-                    >
+                    <button type="button" onClick={() => setIsAddingStage(false)} className="btn-ghost flex-1 text-sm py-2">
                       Cancel
                     </button>
                   </div>
