@@ -90,3 +90,8 @@ export const deleteTask = async (taskId: string) => {
   const response = await apiClient.delete(`/tasks/${taskId}`);
   return response.data;
 };
+
+export const deleteProject = async (projectId: string) => {
+  const response = await apiClient.delete(`/projects/${projectId}`);
+  return response.data;
+};

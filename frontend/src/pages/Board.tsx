@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBoardStore } from "../store/useBoardStore";
 import TaskDetailModal from "../components/TaskDetailModal";
-import { apiClient } from "../api/client";
+import { apiClient, deleteProject } from "../api/client";
 import { Toast, useToast } from "../components/Toast";
 import { Plus, Trash2, Loader2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -83,6 +83,9 @@ export default function Board() {
   const [isDeletingStage, setIsDeletingStage] = useState(false);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
+  const [confirmDeleteProject, setConfirmDeleteProject] = useState(false);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+
   const currentUserId = getUserIdFromToken();
 
   useEffect(() => {
@@ -142,6 +145,20 @@ export default function Board() {
     }
   };
 
+  const handleDeleteProject = async () => {
+    if (!projectId) return;
+    setIsDeletingProject(true);
+    try {
+      await deleteProject(projectId);
+      navigate("/dashboard");
+      showToast("Project deleted successfully.", "success");
+    } catch {
+      showToast("Failed to delete project.", "error");
+    } finally {
+      setIsDeletingProject(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50">
@@ -178,7 +195,7 @@ export default function Board() {
         <div className="absolute top-4 right-32 w-16 h-16 bg-white/10 rounded-2xl rotate-12 pointer-events-none" />
         <div className="absolute bottom-4 left-16 w-10 h-10 bg-white/10 rounded-xl -rotate-12 pointer-events-none" />
 
-        <div className="relative z-10">
+        <div className="relative z-10 flex items-start justify-between">
           <h1 className="text-lg sm:text-[22px] font-extrabold text-white tracking-tight leading-tight">
             {board.title}
           </h1>
@@ -194,6 +211,41 @@ export default function Board() {
               {board.members.length} member(s) · {board.stages.reduce((a, s) => a + s.tasks.length, 0)} task(s) · {board.stages.length} columns
             </span>
           </div>
+
+          {isOwner && (
+            <div className="relative z-10 shrink-0">
+              {!confirmDeleteProject ? (
+                <button
+                  onClick={() => setConfirmDeleteProject(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-white/70
+                            hover:text-white bg-white/10 hover:bg-red-500/80 border border-white/20
+                            px-3 py-1.5 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Project
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-xl px-3 py-2">
+                  <span className="text-xs text-white font-medium">Delete this project?</span>
+                  <button
+                    onClick={handleDeleteProject}
+                    disabled={isDeletingProject}
+                    className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white
+                              text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isDeletingProject && <Loader2 className="w-3 h-3 animate-spin" />}
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteProject(false)}
+                    className="text-xs text-white/70 hover:text-white px-2 py-1 rounded-lg
+                              hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="relative z-10 flex flex-wrap gap-2 mt-3 sm:mt-5">
