@@ -43,7 +43,7 @@ export class ProjectsController {
   }
 
   @Post(':id/invite')
-  @UseGuards(OwnerOnlyGuard) // Hanya owner yang bisa invite
+  @UseGuards(OwnerOnlyGuard) 
   async inviteMember(
     @Param('id') projectId: string,
     @Body() body: { email: string },
@@ -72,6 +72,7 @@ export class ProjectsController {
   }
 
   @Delete(':projectId/stages/:stageId')
+  @UseGuards(OwnerOnlyGuard)
   async deleteStage(
     @Param('projectId') projectId: string,
     @Param('stageId') stageId: string,

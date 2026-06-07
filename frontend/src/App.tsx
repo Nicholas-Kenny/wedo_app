@@ -1,4 +1,3 @@
-// src/App.tsx
 import {
   BrowserRouter,
   Routes,

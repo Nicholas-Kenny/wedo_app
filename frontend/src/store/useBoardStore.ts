@@ -46,7 +46,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   isLoading: true,
 
   fetchBoard: async (projectId: string) => {
-    set({ isLoading: true, board: null }); // ← tambah board: null di sini
+    set({ isLoading: true, board: null });
     try {
       const data = await getProjectBoard(projectId);
       set({ board: data, isLoading: false });
